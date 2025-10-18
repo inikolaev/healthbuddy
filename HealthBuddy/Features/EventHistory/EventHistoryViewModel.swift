@@ -61,24 +61,27 @@ final class EventHistoryViewModel: ObservableObject {
     }
 
     private func makeEntry(for event: HealthEvent, member: FamilyMember) -> EventHistoryEntry {
-        let date = event.recordedAt
-        let severity = event.temperature?.severity
-        let summary = buildSummary(for: event)
+        EventHistoryEntryFactory.makeEntry(event: event, member: member, dateFormatter: dateFormatter)
+    }
+}
 
+enum EventHistoryEntryFactory {
+    static func makeEntry(event: HealthEvent, member: FamilyMember, dateFormatter: DateFormatter) -> EventHistoryEntry {
+        let date = event.recordedAt
         return EventHistoryEntry(
             id: event.id,
             recordedAt: date,
             displayDate: dateFormatter.string(from: date),
             temperature: event.temperature,
-            severity: severity,
-            summary: summary,
+            severity: event.temperature?.severity,
+            summary: buildSummary(for: event),
             symptoms: event.symptoms,
             medications: event.medications,
             notes: event.notes
         )
     }
 
-    private func buildSummary(for event: HealthEvent) -> String {
+    private static func buildSummary(for event: HealthEvent) -> String {
         var parts: [String] = []
 
         let symptomText = event.symptoms.map { $0.label }.joined(separator: ", ")
