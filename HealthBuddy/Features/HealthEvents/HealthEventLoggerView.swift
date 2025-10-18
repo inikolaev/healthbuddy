@@ -76,7 +76,7 @@ struct HealthEventLoggerView: View {
                 .frame(maxWidth: 120)
             }
             if let severity = currentSeverity {
-                SeverityBadge(severity: severity)
+                TemperatureSeverityBadge(severity: severity)
             }
         }
     }
@@ -206,42 +206,6 @@ struct HealthEventLoggerView: View {
         temperatureValue = ""
         temperatureUnit = .celsius
         customSymptomInput = ""
-    }
-}
-
-private struct SeverityBadge: View {
-    var severity: TemperatureSeverity
-
-    var body: some View {
-        let details = severityDetails(for: severity)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Circle()
-                    .fill(details.color.gradient)
-                    .frame(width: 12, height: 12)
-                Text(details.title)
-                    .font(.headline)
-            }
-            Text(details.message)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func severityDetails(for severity: TemperatureSeverity) -> (title: String, message: String, color: Color) {
-        switch severity {
-        case .tooLow:
-            return ("Low temperature", "Below the typical range. Warm the person and seek urgent care if symptoms persist.", .blue)
-        case .normal:
-            return ("Within normal range", "Keep monitoring symptoms and encourage rest and hydration.", .green)
-        case .elevated:
-            return ("Mild fever", "Monitor closely. Consider contacting a clinician if it lasts more than 24 hours.", .yellow)
-        case .high:
-            return ("High fever", "Offer fever reducers if advised and reach out to a doctor if the fever persists.", .orange)
-        case .critical:
-            return ("Very high fever", "Seek medical attention promptly, especially if other concerning symptoms appear.", .red)
-        }
     }
 }
 

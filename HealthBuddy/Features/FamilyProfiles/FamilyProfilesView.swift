@@ -136,11 +136,14 @@ private struct FamilyMemberRow: View {
 
 #if DEBUG
 final class PreviewHealthLogStore: HealthLogStoring {
-    private var state = HealthLogState(members: [
-        FamilyMember(name: "Nora", notes: "Penicillin allergy"),
-        FamilyMember(name: "Milo", notes: "Asthma inhaler"),
-        FamilyMember(name: "Ava")
-    ])
+    private var state = HealthLogState(
+        members: [
+            FamilyMember(name: "Nora", notes: "Penicillin allergy"),
+            FamilyMember(name: "Milo", notes: "Asthma inhaler"),
+            FamilyMember(name: "Ava")
+        ],
+        events: []
+    )
 
     func loadState() -> HealthLogState { state }
     @discardableResult func addMember(_ member: FamilyMember) throws -> HealthLogState {
@@ -152,13 +155,22 @@ final class PreviewHealthLogStore: HealthLogStoring {
         return state
     }
 
-    @discardableResult func addEvent(_ event: HealthEvent) throws -> HealthLogState { state }
+    @discardableResult func addEvent(_ event: HealthEvent) throws -> HealthLogState {
+        if let index = state.events.firstIndex(where: { $0.id == event.id }) {
+            state.events[index] = event
+        } else {
+            state.events.append(event)
+        }
+        return state
+    }
 
     func removeMember(id: UUID) throws {
         state.members.removeAll { $0.id == id }
     }
 
-    func removeEvent(id: UUID) throws {}
+    func removeEvent(id: UUID) throws {
+        state.events.removeAll { $0.id == id }
+    }
 
     func replaceState(_ newState: HealthLogState) throws {
         state = newState

@@ -25,6 +25,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Log Event", systemImage: "stethoscope")
                 }
+
+            EventHistoryView(store: store)
+                .tabItem {
+                    Label("History", systemImage: "clock.arrow.circlepath")
+                }
         }
     }
 }
