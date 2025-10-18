@@ -39,7 +39,6 @@ struct HealthEventLoggerView: View {
                         symptomsSection
                         medicationsSection
                         notesSection
-                        logButtonSection
                     }
                 }
             }
@@ -62,6 +61,21 @@ struct HealthEventLoggerView: View {
                 )
             }
             .onAppear(perform: refreshMembersIfNeeded)
+            .safeAreaInset(edge: .bottom) {
+                if displayPrimaryButton {
+                    Button(action: logEvent) {
+                        Text("Save Health Event")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                    .disabled(!canSave)
+                    .background(Color(.systemBackground))
+                }
+            }
         }
     }
 
@@ -158,13 +172,8 @@ struct HealthEventLoggerView: View {
         }
     }
 
-    private var logButtonSection: some View {
-        Section {
-            Button("Save Health Event", action: logEvent)
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
-                .disabled(!canSave)
-        }
+    private var displayPrimaryButton: Bool {
+        contextMemberId != nil || !viewModel.members.isEmpty
     }
 
     private var currentSeverity: TemperatureSeverity? {
