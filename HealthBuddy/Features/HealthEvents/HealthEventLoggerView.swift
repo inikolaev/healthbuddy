@@ -41,6 +41,10 @@ struct HealthEventLoggerView: View {
             } message: {
                 Text(alertMessage ?? "")
             }
+            .onAppear(perform: refreshAndAssignDefaultMember)
+            .onChange(of: viewModel.members) { _ in
+                assignDefaultMemberIfNeeded()
+            }
         }
     }
 
@@ -206,6 +210,19 @@ struct HealthEventLoggerView: View {
         temperatureValue = ""
         temperatureUnit = .celsius
         customSymptomInput = ""
+    }
+
+    private func refreshAndAssignDefaultMember() {
+        viewModel.refreshMembers()
+        assignDefaultMemberIfNeeded()
+    }
+
+    private func assignDefaultMemberIfNeeded() {
+        if let currentId = form.memberId,
+           viewModel.members.contains(where: { $0.id == currentId }) {
+            return
+        }
+        form.memberId = viewModel.members.first?.id
     }
 }
 
