@@ -26,4 +26,42 @@ struct TemperatureReading: Codable, Equatable {
             return TemperatureReading(value: value, unit: targetUnit)
         }
     }
+
+    var celsiusValue: Double {
+        switch unit {
+        case .celsius:
+            return value
+        case .fahrenheit:
+            return (value - 32) * 5 / 9
+        }
+    }
+
+    var severity: TemperatureSeverity {
+        let temperature = celsiusValue
+        switch temperature {
+        case ..<TemperatureSeverity.hypothermiaThresholdCelsius:
+            return .tooLow
+        case ..<TemperatureSeverity.elevatedThresholdCelsius:
+            return .normal
+        case ..<TemperatureSeverity.highThresholdCelsius:
+            return .elevated
+        case ..<TemperatureSeverity.criticalThresholdCelsius:
+            return .high
+        default:
+            return .critical
+        }
+    }
+}
+
+enum TemperatureSeverity: Equatable {
+    case tooLow
+    case normal
+    case elevated
+    case high
+    case critical
+
+    static let hypothermiaThresholdCelsius: Double = 35.0
+    static let elevatedThresholdCelsius: Double = 37.5
+    static let highThresholdCelsius: Double = 38.5
+    static let criticalThresholdCelsius: Double = 39.5
 }

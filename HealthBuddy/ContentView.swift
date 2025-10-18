@@ -14,8 +14,18 @@ struct ContentView: View {
         self.store = store
     }
 
-var body: some View {
-        FamilyProfilesView(store: store)
+    var body: some View {
+        TabView {
+            FamilyProfilesView(store: store)
+                .tabItem {
+                    Label("Family", systemImage: "person.3")
+                }
+
+            HealthEventLoggerView(store: store)
+                .tabItem {
+                    Label("Log Event", systemImage: "stethoscope")
+                }
+        }
     }
 }
 
