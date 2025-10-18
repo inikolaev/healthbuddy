@@ -1,11 +1,20 @@
 import Foundation
 
+protocol HealthLogStoring: AnyObject {
+    func loadState() -> HealthLogState
+    @discardableResult func addMember(_ member: FamilyMember) throws -> HealthLogState
+    @discardableResult func addEvent(_ event: HealthEvent) throws -> HealthLogState
+    func removeMember(id: UUID) throws
+    func removeEvent(id: UUID) throws
+    func replaceState(_ newState: HealthLogState) throws
+}
+
 enum HealthLogStoreError: Error, Equatable {
     case missingMember(UUID)
     case missingEvent(UUID)
 }
 
-final class HealthLogStore {
+final class HealthLogStore: HealthLogStoring {
     private let fileURL: URL
     private var state: HealthLogState
     private let encoder: JSONEncoder

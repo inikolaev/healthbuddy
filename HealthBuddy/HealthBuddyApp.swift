@@ -9,9 +9,18 @@ import SwiftUI
 
 @main
 struct HealthBuddyApp: App {
+    private let store: HealthLogStore
+
+    init() {
+        let baseDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let storageDirectory = baseDirectory.appendingPathComponent("HealthBuddy", isDirectory: true)
+        store = HealthLogStore(directory: storageDirectory)
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(store: store)
         }
     }
 }

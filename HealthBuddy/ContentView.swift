@@ -8,17 +8,17 @@
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+    private let store: any HealthLogStoring
+
+    init(store: any HealthLogStoring) {
+        self.store = store
+    }
+
+var body: some View {
+        FamilyProfilesView(store: store)
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(store: PreviewHealthLogStore())
 }
