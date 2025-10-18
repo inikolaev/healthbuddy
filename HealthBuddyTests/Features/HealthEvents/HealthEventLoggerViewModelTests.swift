@@ -16,7 +16,7 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         store = HealthLogStore(directory: temporaryDirectory)
         member = FamilyMember(id: UUID(), name: "Jordan")
         try store.addMember(member)
-        sut = HealthEventLoggerViewModel(store: store)
+        sut = HealthEventLoggerViewModel(store: store, memberId: member.id)
     }
 
     override func tearDownWithError() throws {
@@ -26,12 +26,8 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         try? FileManager.default.removeItem(at: temporaryDirectory)
     }
 
-    func testMembersMirrorStoreState() {
-        XCTAssertEqual(sut.members.map(\.id), [member.id])
-    }
-
-    func testLogEventPersistsToStore() throws {
-        var form = HealthEventForm(memberId: member.id)
+    func testLogEventPersistsToStoreWithTemperature() throws {
+        var form = HealthEventForm()
         form.temperature = TemperatureReading(value: 38.1, unit: .celsius)
         form.symptomLabels = ["Cough"]
         form.customSymptoms = ["Body aches"]
@@ -55,20 +51,23 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         XCTAssertTrue(event.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))
     }
 
-    func testLogEventRequiresMemberSelection() {
-        sut = HealthEventLoggerViewModel(store: store)
-
-        XCTAssertThrowsError(try sut.logEvent(using: HealthEventForm())) { error in
-            XCTAssertEqual(error as? HealthEventLoggerError, .missingMemberSelection)
-        }
-    }
-
     func testLogEventRejectsTemperatureOutsideSafeRange() {
-        var form = HealthEventForm(memberId: member.id)
+        var form = HealthEventForm()
         form.temperature = TemperatureReading(value: 28.0, unit: .celsius)
 
         XCTAssertThrowsError(try sut.logEvent(using: form)) { error in
             XCTAssertEqual(error as? HealthEventLoggerError, .invalidTemperature)
         }
+    }
+
+    func testLogEventAllowsMissingTemperature() throws {
+        var form = HealthEventForm()
+        form.symptomLabels = ["Fever"]
+
+        try sut.logEvent(using: form)
+
+        let event = try XCTUnwrap(store.loadState().events.first)
+        XCTAssertNil(event.temperature)
+        XCTAssertEqual(event.symptoms.first?.label, "Fever")
     }
 }

@@ -26,10 +26,10 @@ final class AppIntegrationTests: XCTestCase {
         XCTAssertEqual(store.loadState().members.count, 1)
 
         // Log an event through the logging view model.
-        let loggerVM = HealthEventLoggerViewModel(store: store)
-        loggerVM.refreshMembers()
+        let memberId = try XCTUnwrap(store.loadState().members.first?.id)
+        let loggerVM = HealthEventLoggerViewModel(store: store, memberId: memberId)
 
-        var form = HealthEventForm(memberId: loggerVM.members.first?.id)
+        var form = HealthEventForm()
         form.temperature = TemperatureReading(value: 38.6, unit: .celsius)
         form.symptomLabels = ["Fever", "Cough"]
         form.medications = "Paracetamol"

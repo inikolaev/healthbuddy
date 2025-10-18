@@ -13,6 +13,7 @@ final class HealthEventLoggerViewModel: ObservableObject {
 
     private let store: any HealthLogStoring
     private let calendar: Calendar
+    private let contextMemberId: UUID?
 
     static let validTemperatureRangeCelsius: ClosedRange<Double> = 30.0...43.0
     private static let defaultSymptomLibrary: [String] = [
@@ -22,12 +23,14 @@ final class HealthEventLoggerViewModel: ObservableObject {
 
     init(
         store: any HealthLogStoring,
+        memberId: UUID? = nil,
         symptomLibrary: [String] = HealthEventLoggerViewModel.defaultSymptomLibrary,
         calendar: Calendar = .current
     ) {
         self.store = store
         self.symptomLibrary = symptomLibrary
         self.calendar = calendar
+        self.contextMemberId = memberId
         refreshMembers()
     }
 
@@ -39,21 +42,20 @@ final class HealthEventLoggerViewModel: ObservableObject {
     }
 
     func logEvent(using form: HealthEventForm) throws {
-        guard let memberId = form.memberId else {
+        guard let memberId = form.memberId ?? contextMemberId else {
             throw HealthEventLoggerError.missingMemberSelection
         }
 
-        guard members.contains(where: { $0.id == memberId }) else {
+        let memberExists = store.loadState().members.contains(where: { $0.id == memberId })
+        guard memberExists else {
             throw HealthEventLoggerError.memberNotFound
         }
 
-        guard let reading = form.temperature else {
-            throw HealthEventLoggerError.invalidTemperature
-        }
-
-        let celsiusValue = reading.celsiusValue
-        guard Self.validTemperatureRangeCelsius.contains(celsiusValue) else {
-            throw HealthEventLoggerError.invalidTemperature
+        if let reading = form.temperature {
+            let celsiusValue = reading.celsiusValue
+            guard Self.validTemperatureRangeCelsius.contains(celsiusValue) else {
+                throw HealthEventLoggerError.invalidTemperature
+            }
         }
 
         let symptoms = normalizeSymptoms(predefined: form.symptomLabels, custom: form.customSymptoms)
@@ -61,7 +63,7 @@ final class HealthEventLoggerViewModel: ObservableObject {
         let event = HealthEvent(
             memberId: memberId,
             recordedAt: trimmedToMinute(form.recordedAt),
-            temperature: reading,
+            temperature: form.temperature,
             symptoms: symptoms,
             medications: form.medications?.nilIfBlank,
             notes: form.notes?.nilIfBlank
