@@ -33,16 +33,6 @@ struct FamilyMemberDetailView: View {
                     }
                 }
             }
-
-            Section {
-                Button {
-                    isPresentingLogEvent = true
-                } label: {
-                    Label("Log Health Event", systemImage: "stethoscope")
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .buttonStyle(.borderedProminent)
-            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(viewModel.member.name)
@@ -75,6 +65,20 @@ struct FamilyMemberDetailView: View {
             if !newValue {
                 viewModel.refresh()
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                isPresentingLogEvent = true
+            } label: {
+                Label("Log Health Event", systemImage: "stethoscope")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
         }
     }
 
