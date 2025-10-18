@@ -30,8 +30,14 @@ struct FamilyMemberDetailView: View {
                 Section("Recent Events") {
                     ForEach(viewModel.recentEntries) { entry in
                         MemberEventRow(entry: entry)
+                            .onAppear {
+                                viewModel.loadMoreIfNeeded(for: entry)
+                            }
                     }
                 }
+                Section { Color.clear.frame(height: 72) }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
         }
         .listStyle(.insetGrouped)
@@ -72,13 +78,13 @@ struct FamilyMemberDetailView: View {
             } label: {
                 Label("Log Health Event", systemImage: "stethoscope")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            .background(Color(.systemBackground))
         }
     }
 
