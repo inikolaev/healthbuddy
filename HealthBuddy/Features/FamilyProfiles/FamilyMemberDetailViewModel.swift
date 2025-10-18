@@ -7,20 +7,22 @@ final class FamilyMemberDetailViewModel: ObservableObject {
 
     private let store: any HealthLogStoring
     private let memberId: UUID
-    private let historyLimit: Int
+    private let pageSize: Int
+    private var currentLimit: Int
     private let dateFormatter: DateFormatter
     private let calendar: Calendar
 
     init(
         store: any HealthLogStoring,
         memberId: UUID,
-        historyLimit: Int = 3,
+        historyLimit: Int = 20,
         locale: Locale = .current,
         calendar: Calendar = .current
     ) {
         self.store = store
         self.memberId = memberId
-        self.historyLimit = historyLimit
+        self.pageSize = historyLimit
+        self.currentLimit = historyLimit
         self.calendar = calendar
         let formatter = DateFormatter()
         formatter.locale = locale
@@ -43,13 +45,7 @@ final class FamilyMemberDetailViewModel: ObservableObject {
             member = updatedMember
         }
 
-        let entries = state.events
-            .filter { $0.memberId == memberId }
-            .sorted { $0.recordedAt > $1.recordedAt }
-            .prefix(historyLimit)
-            .map { EventHistoryEntryFactory.makeEntry(event: $0, member: member, dateFormatter: dateFormatter) }
-
-        recentEntries = Array(entries)
+        recentEntries = entries(limit: currentLimit, from: state.events)
     }
 
     func updateMember(name: String, notes: String?) throws {
@@ -63,5 +59,21 @@ final class FamilyMemberDetailViewModel: ObservableObject {
         updated.notes = notes?.nilIfBlank
         try store.addMember(updated)
         refresh()
+    }
+
+    func loadMoreIfNeeded(for entry: EventHistoryEntry) {
+        guard let last = recentEntries.last, last.id == entry.id else { return }
+        let allEvents = store.loadState().events.filter { $0.memberId == memberId }
+        guard recentEntries.count < allEvents.count else { return }
+        currentLimit = min(currentLimit + pageSize, allEvents.count)
+        recentEntries = entries(limit: currentLimit, from: allEvents)
+    }
+
+    private func entries(limit: Int, from events: [HealthEvent]) -> [EventHistoryEntry] {
+        events
+            .filter { $0.memberId == memberId }
+            .sorted { $0.recordedAt > $1.recordedAt }
+            .prefix(limit)
+            .map { EventHistoryEntryFactory.makeEntry(event: $0, member: member, dateFormatter: dateFormatter) }
     }
 }
