@@ -15,21 +15,8 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView {
+        NavigationStack {
             FamilyProfilesView(store: store)
-                .tabItem {
-                    Label("Family", systemImage: "person.3")
-                }
-
-            HealthEventLoggerView(store: store)
-                .tabItem {
-                    Label("Log Event", systemImage: "stethoscope")
-                }
-
-            EventHistoryView(store: store)
-                .tabItem {
-                    Label("History", systemImage: "clock.arrow.circlepath")
-                }
         }
     }
 }
