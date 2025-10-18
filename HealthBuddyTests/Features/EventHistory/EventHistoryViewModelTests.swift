@@ -88,4 +88,24 @@ final class EventHistoryViewModelTests: XCTestCase {
         XCTAssertTrue(entry.summary.contains("Ibuprofen"))
         XCTAssertEqual(entry.notes, "Encourage fluids")
     }
+
+    func testEntryHandlesMissingTemperature() throws {
+        let event = HealthEvent(
+            memberId: jordan.id,
+            recordedAt: Date(),
+            temperature: nil,
+            symptoms: [Symptom(label: "Fatigue", isCustom: false)],
+            medications: nil,
+            notes: nil
+        )
+        try store.addEvent(event)
+
+        let sut = EventHistoryViewModel(store: store, locale: Locale(identifier: "en_US_POSIX"))
+        guard let entry = sut.sections.first?.entries.first else {
+            return XCTFail("Expected an entry")
+        }
+
+        XCTAssertNil(entry.severity)
+        XCTAssertFalse(entry.summary.contains("°"))
+    }
 }

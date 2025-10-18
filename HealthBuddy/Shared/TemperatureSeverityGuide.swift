@@ -45,4 +45,13 @@ struct TemperatureSeverityGuide {
             )
         }
     }
+
+    static func neutral() -> TemperatureSeverityGuide {
+        TemperatureSeverityGuide(
+            severity: .normal,
+            title: "No temperature recorded",
+            message: "Recordings without a temperature focus on symptoms and notes.",
+            color: .gray.opacity(0.4)
+        )
+    }
 }

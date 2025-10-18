@@ -46,7 +46,10 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
             return XCTFail("Expected stored event")
         }
         XCTAssertEqual(event.memberId, member.id)
-        XCTAssertEqual(event.temperature.value, 38.1, accuracy: 0.001)
+        XCTAssertNotNil(event.temperature)
+        if let temperature = event.temperature {
+            XCTAssertEqual(temperature.value, 38.1, accuracy: 0.001)
+        }
         XCTAssertEqual(event.symptoms.count, 2)
         XCTAssertTrue(event.symptoms.contains(where: { !$0.isCustom && $0.label == "Cough" }))
         XCTAssertTrue(event.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))

@@ -72,4 +72,23 @@ final class HealthLogStoreTests: XCTestCase {
         XCTAssertTrue(store.loadState().members.isEmpty)
         XCTAssertTrue(store.loadState().events.isEmpty)
     }
+
+    func testAddEventAllowsMissingTemperature() throws {
+        let member = FamilyMember(id: UUID(), name: "Kai", notes: nil)
+        try store.addMember(member)
+
+        let event = HealthEvent(
+            id: UUID(),
+            memberId: member.id,
+            recordedAt: Date(),
+            temperature: nil,
+            symptoms: [],
+            medications: nil,
+            notes: nil
+        )
+
+        try store.addEvent(event)
+
+        XCTAssertNil(store.loadState().events.first?.temperature)
+    }
 }

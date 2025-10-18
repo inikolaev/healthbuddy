@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct TemperatureSeverityBadge: View {
-    var severity: TemperatureSeverity
+    var severity: TemperatureSeverity?
 
     var body: some View {
-        let guide = TemperatureSeverityGuide.guide(for: severity)
+        let guide = severity.map(TemperatureSeverityGuide.guide) ?? TemperatureSeverityGuide.neutral()
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Circle()

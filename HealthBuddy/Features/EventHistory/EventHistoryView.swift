@@ -51,7 +51,7 @@ private struct EventHistoryRow: View {
     var entry: EventHistoryEntry
 
     var body: some View {
-        let guide = TemperatureSeverityGuide.guide(for: entry.severity)
+        let guide = entry.severity.map(TemperatureSeverityGuide.guide) ?? TemperatureSeverityGuide.neutral()
 
         HStack(alignment: .top, spacing: 12) {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -78,11 +78,15 @@ private struct EventHistoryDetailView: View {
 
     var body: some View {
         List {
-            Section(header: Text("Temperature")) {
-                TemperatureSeverityBadge(severity: entry.severity)
-                Text(entry.temperature.formatted())
-                    .font(.title3)
-                    .fontWeight(.semibold)
+            if entry.temperature != nil || entry.severity != nil {
+                Section(header: Text("Temperature")) {
+                    TemperatureSeverityBadge(severity: entry.severity)
+                    if let temperature = entry.temperature {
+                        Text(temperature.formatted())
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                    }
+                }
             }
 
             if !entry.symptoms.isEmpty {

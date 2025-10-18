@@ -11,8 +11,8 @@ struct EventHistoryEntry: Identifiable, Equatable {
     let id: UUID
     let recordedAt: Date
     let displayDate: String
-    let temperature: TemperatureReading
-    let severity: TemperatureSeverity
+    let temperature: TemperatureReading?
+    let severity: TemperatureSeverity?
     let summary: String
     let symptoms: [Symptom]
     let medications: String?
@@ -62,7 +62,7 @@ final class EventHistoryViewModel: ObservableObject {
 
     private func makeEntry(for event: HealthEvent, member: FamilyMember) -> EventHistoryEntry {
         let date = event.recordedAt
-        let severity = event.temperature.severity
+        let severity = event.temperature?.severity
         let summary = buildSummary(for: event)
 
         return EventHistoryEntry(
@@ -86,7 +86,9 @@ final class EventHistoryViewModel: ObservableObject {
             parts.append(symptomText)
         }
 
-        parts.append(event.temperature.formatted())
+        if let temperature = event.temperature {
+            parts.append(temperature.formatted())
+        }
 
         if let medications = event.medications?.nilIfBlank {
             parts.append(medications)

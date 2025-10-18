@@ -4,7 +4,7 @@ struct HealthEvent: Identifiable, Codable, Equatable {
     var id: UUID
     var memberId: UUID
     var recordedAt: Date
-    var temperature: TemperatureReading
+    var temperature: TemperatureReading?
     var symptoms: [Symptom]
     var medications: String?
     var notes: String?
@@ -13,7 +13,7 @@ struct HealthEvent: Identifiable, Codable, Equatable {
         id: UUID = UUID(),
         memberId: UUID,
         recordedAt: Date,
-        temperature: TemperatureReading,
+        temperature: TemperatureReading?,
         symptoms: [Symptom],
         medications: String?,
         notes: String?
