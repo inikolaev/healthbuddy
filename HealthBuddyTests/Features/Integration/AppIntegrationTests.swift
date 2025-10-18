@@ -43,5 +43,10 @@ final class AppIntegrationTests: XCTestCase {
         XCTAssertEqual(historyVM.sections.count, 1)
         XCTAssertEqual(historyVM.sections.first?.entries.count, 1)
         XCTAssertEqual(historyVM.sections.first?.entries.first?.severity, .high)
+
+        // Ensure the member detail surface reflects the new event.
+        let detailVM = FamilyMemberDetailViewModel(store: store, memberId: memberId, historyLimit: 5, locale: Locale(identifier: "en_US_POSIX"))
+        XCTAssertEqual(detailVM.recentEntries.count, 1)
+        XCTAssertEqual(detailVM.recentEntries.first?.severity, .high)
     }
 }

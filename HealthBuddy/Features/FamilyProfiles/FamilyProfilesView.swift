@@ -6,8 +6,10 @@ struct FamilyProfilesView: View {
     @State private var newMemberName = ""
     @State private var newMemberNotes = ""
     @State private var alertMessage: String?
+    private let store: any HealthLogStoring
 
     init(store: any HealthLogStoring) {
+        self.store = store
         _viewModel = StateObject(wrappedValue: FamilyProfilesViewModel(store: store))
     }
 
@@ -47,7 +49,11 @@ struct FamilyProfilesView: View {
         } else {
             List {
                 ForEach(viewModel.members) { member in
-                    FamilyMemberRow(member: member)
+                    NavigationLink {
+                        FamilyMemberDetailView(store: store, memberId: member.id)
+                    } label: {
+                        FamilyMemberRow(member: member)
+                    }
                 }
                 .onDelete(perform: delete)
             }

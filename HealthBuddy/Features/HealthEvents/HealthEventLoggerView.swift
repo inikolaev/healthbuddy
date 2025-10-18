@@ -2,28 +2,39 @@ import SwiftUI
 
 struct HealthEventLoggerView: View {
     @StateObject private var viewModel: HealthEventLoggerViewModel
-    @State private var form = HealthEventForm()
+    @State private var form: HealthEventForm
     @State private var temperatureValue = ""
     @State private var temperatureUnit: TemperatureUnit = .celsius
-    @State private var customSymptomInput = ""
+    @State private var isPresentingSymptomPicker = false
+    @State private var customSymptomDraft = ""
     @State private var alertMessage: String?
 
-    init(store: any HealthLogStoring) {
-        _viewModel = StateObject(wrappedValue: HealthEventLoggerViewModel(store: store))
+    private let store: any HealthLogStoring
+    private let contextMemberId: UUID?
+    private let onSave: (() -> Void)?
+
+    init(store: any HealthLogStoring, memberId: UUID? = nil, onSave: (() -> Void)? = nil) {
+        self.store = store
+        self.contextMemberId = memberId
+        self.onSave = onSave
+        _viewModel = StateObject(wrappedValue: HealthEventLoggerViewModel(store: store, memberId: memberId))
+        _form = State(initialValue: HealthEventForm(memberId: memberId))
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.members.isEmpty {
+                if viewModel.members.isEmpty && contextMemberId == nil {
                     ContentUnavailableView(
                         "Add a Family Member",
                         systemImage: "person.crop.circle.badge.plus",
-                        description: Text("Create at least one profile before logging temperature, symptoms, or medication.")
+                        description: Text("Create a profile before logging symptoms or medication.")
                     )
                 } else {
                     Form {
-                        memberSection
+                        if contextMemberId == nil {
+                            memberSection
+                        }
                         temperatureSection
                         symptomsSection
                         medicationsSection
@@ -33,6 +44,7 @@ struct HealthEventLoggerView: View {
                 }
             }
             .navigationTitle("New Health Event")
+            .navigationBarTitleDisplayMode(.inline)
             .alert("Unable to Save", isPresented: Binding(
                 get: { alertMessage != nil },
                 set: { if !$0 { alertMessage = nil } }
@@ -41,15 +53,27 @@ struct HealthEventLoggerView: View {
             } message: {
                 Text(alertMessage ?? "")
             }
-            .onAppear(perform: refreshAndAssignDefaultMember)
-            .onChange(of: viewModel.members) { _ in
-                assignDefaultMemberIfNeeded()
+            .sheet(isPresented: $isPresentingSymptomPicker) {
+                SymptomPickerView(
+                    availableSymptoms: availableSymptoms,
+                    customDraft: $customSymptomDraft,
+                    onSelect: addSymptom,
+                    onAddCustom: addCustomSymptom
+                )
             }
+            .onAppear(perform: refreshMembersIfNeeded)
+        }
+    }
+
+    private var availableSymptoms: [String] {
+        viewModel.symptomLibrary.filter { symptom in
+            !form.symptomLabels.contains(where: { $0.caseInsensitiveCompare(symptom) == .orderedSame }) &&
+            !form.customSymptoms.contains(where: { $0.caseInsensitiveCompare(symptom) == .orderedSame })
         }
     }
 
     private var memberSection: some View {
-        Section(header: Text("Family Member")) {
+        Section("Family Member") {
             Picker("Member", selection: Binding(
                 get: { form.memberId ?? viewModel.members.first?.id },
                 set: { form.memberId = $0 }
@@ -63,79 +87,61 @@ struct HealthEventLoggerView: View {
     }
 
     private var temperatureSection: some View {
-        Section(
-            header: Text("Temperature"),
-            footer: Text("Normal range is 35–37.4 °C (95.0–99.3 °F). Values outside 30–43 °C will be rejected.")
-        ) {
+        Section("Temperature") {
             HStack {
-                TextField("Value", text: $temperatureValue)
+                TextField("Optional", text: $temperatureValue)
                     .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.leading)
                 Picker("Unit", selection: $temperatureUnit) {
                     ForEach(TemperatureUnit.allCases, id: \.self) { unit in
                         Text(unit == .celsius ? "°C" : "°F").tag(unit)
                     }
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 120)
+                .frame(maxWidth: 140)
             }
             if let severity = currentSeverity {
                 TemperatureSeverityBadge(severity: severity)
+            } else {
+                Text("Leave blank if temperature wasn't measured.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         }
     }
 
     private var symptomsSection: some View {
-        Section(
-            header: Text("Symptoms"),
-            footer: Text("Tap a custom symptom to remove it. We'll avoid duplicates automatically.")
-        ) {
-            ForEach(viewModel.symptomLibrary, id: \.self) { symptom in
-                Toggle(symptom, isOn: Binding(
-                    get: { form.symptomLabels.contains(symptom) },
-                    set: { isOn in
-                        if isOn {
-                            if !form.symptomLabels.contains(symptom) {
-                                form.symptomLabels.append(symptom)
-                            }
-                        } else {
+        Section("Symptoms") {
+            if form.symptomLabels.isEmpty && form.customSymptoms.isEmpty {
+                Text("No symptoms selected yet.")
+                    .foregroundStyle(.secondary)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], alignment: .leading, spacing: 8) {
+                    ForEach(form.symptomLabels, id: \.self) { symptom in
+                        SymptomChip(label: symptom, removable: true) {
                             form.symptomLabels.removeAll { $0 == symptom }
                         }
                     }
-                ))
-            }
-
-            if !form.customSymptoms.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
-                        ForEach(Array(form.customSymptoms.enumerated()), id: \.element) { index, label in
-                            Label(label, systemImage: "xmark.circle.fill")
-                                .labelStyle(.titleAndIcon)
-                                .font(.footnote)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Capsule().fill(Color.gray.opacity(0.2)))
-                                .onTapGesture {
-                                    form.customSymptoms.remove(at: index)
-                                }
+                    ForEach(form.customSymptoms, id: \.self) { symptom in
+                        SymptomChip(label: symptom, removable: true) {
+                            form.customSymptoms.removeAll { $0 == symptom }
                         }
                     }
                 }
+                .padding(.vertical, 4)
             }
 
-            HStack {
-                TextField("Add custom symptom", text: $customSymptomInput)
-                Button("Add") {
-                    addCustomSymptom()
-                }
-                .disabled(customSymptomInput.trimmed.isEmpty)
+            Button {
+                customSymptomDraft = ""
+                isPresentingSymptomPicker = true
+            } label: {
+                Label("Add Symptom", systemImage: "plus.circle")
             }
         }
     }
 
     private var medicationsSection: some View {
-        Section(header: Text("Medication")) {
-            TextField("Medication given", text: Binding(
+        Section("Medication") {
+            TextField("Optional", text: Binding(
                 get: { form.medications ?? "" },
                 set: { form.medications = $0 }
             ))
@@ -144,8 +150,8 @@ struct HealthEventLoggerView: View {
     }
 
     private var notesSection: some View {
-        Section(header: Text("Notes")) {
-            TextField("Additional context (diet, rest, etc.)", text: Binding(
+        Section("Notes") {
+            TextField("Care instructions, behaviours, fluids, etc.", text: Binding(
                 get: { form.notes ?? "" },
                 set: { form.notes = $0 }
             ), axis: .vertical)
@@ -154,14 +160,10 @@ struct HealthEventLoggerView: View {
 
     private var logButtonSection: some View {
         Section {
-            Button {
-                logEvent()
-            } label: {
-                Text("Save Health Event")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!canSave)
+            Button("Save Health Event", action: logEvent)
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+                .disabled(!canSave)
         }
     }
 
@@ -176,61 +178,138 @@ struct HealthEventLoggerView: View {
     }
 
     private var canSave: Bool {
-        form.memberId != nil && temperatureReading != nil
+        let hasContext = (form.memberId ?? contextMemberId) != nil
+        let hasTemperature = temperatureReading != nil
+        let hasSymptoms = !form.symptomLabels.isEmpty || !form.customSymptoms.isEmpty
+        let hasNotes = !(form.notes?.trimmed.isEmpty ?? true)
+        let hasMedication = !(form.medications?.trimmed.isEmpty ?? true)
+        return hasContext && (hasTemperature || hasSymptoms || hasNotes || hasMedication)
     }
 
-    private func addCustomSymptom() {
-        let trimmed = customSymptomInput.trimmed
-        guard !trimmed.isEmpty else { return }
-        if !form.customSymptoms.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            form.customSymptoms.append(trimmed)
-        }
-        customSymptomInput = ""
-    }
-
-    private func logEvent() {
-        guard let reading = temperatureReading else {
-            alertMessage = "Please enter a valid temperature."
-            return
-        }
-
-        var workingForm = form
-        workingForm.temperature = reading
-
-        do {
-            try viewModel.logEvent(using: workingForm)
-            resetForm()
-        } catch {
-            alertMessage = error.localizedDescription
-        }
-    }
-
-    private func resetForm() {
-        form = HealthEventForm(memberId: form.memberId)
-        temperatureValue = ""
-        temperatureUnit = .celsius
-        customSymptomInput = ""
-    }
-
-    private func refreshAndAssignDefaultMember() {
+    private func refreshMembersIfNeeded() {
         viewModel.refreshMembers()
         assignDefaultMemberIfNeeded()
     }
 
     private func assignDefaultMemberIfNeeded() {
+        guard contextMemberId == nil else { return }
         if let currentId = form.memberId,
            viewModel.members.contains(where: { $0.id == currentId }) {
             return
         }
         form.memberId = viewModel.members.first?.id
     }
+
+    private func addSymptom(_ symptom: String) {
+        let normalized = symptom.trimmed
+        guard !normalized.isEmpty else { return }
+        if !form.symptomLabels.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
+            form.symptomLabels.append(normalized)
+        }
+        isPresentingSymptomPicker = false
+    }
+
+    private func addCustomSymptom(_ symptom: String) {
+        let normalized = symptom.trimmed
+        guard !normalized.isEmpty else { return }
+        if !form.customSymptoms.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) &&
+            !form.symptomLabels.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
+            form.customSymptoms.append(normalized)
+        }
+        customSymptomDraft = ""
+        isPresentingSymptomPicker = false
+    }
+
+    private func logEvent() {
+        var workingForm = form
+        workingForm.memberId = form.memberId ?? contextMemberId
+        workingForm.temperature = temperatureReading
+
+        do {
+            try viewModel.logEvent(using: workingForm)
+            resetForm()
+            onSave?()
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
+
+    private func resetForm() {
+        form = HealthEventForm(memberId: contextMemberId)
+        temperatureValue = ""
+        temperatureUnit = .celsius
+        customSymptomDraft = ""
+    }
+}
+
+private struct SymptomPickerView: View {
+    var availableSymptoms: [String]
+    @Binding var customDraft: String
+    var onSelect: (String) -> Void
+    var onAddCustom: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if !availableSymptoms.isEmpty {
+                    Section("Common symptoms") {
+                        ForEach(availableSymptoms, id: \.self) { symptom in
+                            Button(symptom) {
+                                onSelect(symptom)
+                                dismiss()
+                            }
+                        }
+                    }
+                }
+
+                Section("Custom") {
+                    TextField("Describe symptom", text: $customDraft)
+                    Button("Add custom") {
+                        onAddCustom(customDraft)
+                        dismiss()
+                    }
+                    .disabled(customDraft.trimmed.isEmpty)
+                }
+            }
+            .navigationTitle("Add Symptom")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close", role: .cancel) { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+private struct SymptomChip: View {
+    var label: String
+    var removable: Bool
+    var onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(label)
+                .font(.footnote)
+            if removable {
+                Image(systemName: "xmark.circle.fill")
+                    .onTapGesture(perform: onRemove)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(Color.gray.opacity(0.2)))
+    }
 }
 
 #if DEBUG
 #Preview {
     let store = PreviewHealthLogStore()
-    _ = try? store.addMember(FamilyMember(name: "Jordan", notes: "Peanut allergy"))
-    _ = try? store.addMember(FamilyMember(name: "Lena"))
-    return HealthEventLoggerView(store: store)
+    let member = FamilyMember(name: "Jordan", notes: "Peanut allergy")
+    _ = try? store.addMember(member)
+    return NavigationStack {
+        HealthEventLoggerView(store: store, memberId: member.id)
+    }
 }
 #endif
