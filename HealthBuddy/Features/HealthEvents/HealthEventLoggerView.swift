@@ -12,6 +12,7 @@ struct HealthEventLoggerView: View {
     private let store: any HealthLogStoring
     private let contextMemberId: UUID?
     private let onSave: (() -> Void)?
+    @Environment(\.dismiss) private var dismiss
 
     init(store: any HealthLogStoring, memberId: UUID? = nil, onSave: (() -> Void)? = nil) {
         self.store = store
@@ -236,8 +237,8 @@ struct HealthEventLoggerView: View {
 
         do {
             try viewModel.logEvent(using: workingForm)
-            resetForm()
             onSave?()
+            dismiss()
         } catch {
             alertMessage = error.localizedDescription
         }
