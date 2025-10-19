@@ -6,7 +6,6 @@ struct HealthEventForm {
     var temperature: TemperatureReading?
     var symptomLabels: [String]
     var customSymptoms: [String]
-    var medications: String?
     var notes: String?
 
     init(
@@ -15,7 +14,6 @@ struct HealthEventForm {
         temperature: TemperatureReading? = nil,
         symptomLabels: [String] = [],
         customSymptoms: [String] = [],
-        medications: String? = nil,
         notes: String? = nil
     ) {
         self.memberId = memberId
@@ -23,7 +21,6 @@ struct HealthEventForm {
         self.temperature = temperature
         self.symptomLabels = symptomLabels
         self.customSymptoms = customSymptoms
-        self.medications = medications
         self.notes = notes
     }
 
@@ -33,7 +30,6 @@ struct HealthEventForm {
         self.temperature = event.temperature
         self.symptomLabels = event.symptoms.filter { !$0.isCustom }.map { $0.label }
         self.customSymptoms = event.symptoms.filter { $0.isCustom }.map { $0.label }
-        self.medications = event.medications
         self.notes = event.notes
     }
 }

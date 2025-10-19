@@ -31,7 +31,6 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         form.temperature = TemperatureReading(value: 38.1, unit: .celsius)
         form.symptomLabels = ["Cough"]
         form.customSymptoms = ["Body aches"]
-        form.medications = "Paracetamol"
         form.notes = "Rest and fluids"
 
         try sut.logEvent(using: form)
@@ -73,7 +72,6 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.0, unit: .celsius),
             symptoms: [Symptom(label: "Cough", isCustom: false)],
-            medications: nil,
             notes: nil
         )
         try store.addEvent(original)
@@ -84,7 +82,6 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         var form = HealthEventForm(memberId: member.id, recordedAt: newRecordedAt)
         form.symptomLabels = ["Fever"]
         form.customSymptoms = ["Body aches"]
-        form.medications = "Ibuprofen"
         form.notes = "Hydrate often"
 
         try sut.updateEvent(id: original.id, using: form)
@@ -96,7 +93,6 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         XCTAssertNil(updated.temperature)
         XCTAssertTrue(updated.symptoms.contains(where: { !$0.isCustom && $0.label == "Fever" }))
         XCTAssertTrue(updated.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))
-        XCTAssertEqual(updated.medications, "Ibuprofen")
         XCTAssertEqual(updated.notes, "Hydrate often")
 
         let trimmedRecordedAt = calendar.date(bySettingSecond: 0, of: newRecordedAt) ?? newRecordedAt

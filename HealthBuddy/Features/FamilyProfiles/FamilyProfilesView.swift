@@ -65,7 +65,7 @@ struct FamilyProfilesView: View {
         ContentUnavailableView(
             "Start Your Family List",
             systemImage: "person.3",
-            description: Text("Add each family member so you can log temperatures, symptoms, and medications when they need care.")
+            description: Text("Add each family member so you can log symptoms and notes when they need care.")
         )
         .symbolEffect(.bounce, value: viewModel.members.isEmpty)
     }

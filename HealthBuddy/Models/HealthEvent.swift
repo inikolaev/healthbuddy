@@ -6,7 +6,6 @@ struct HealthEvent: Identifiable, Codable, Equatable {
     var recordedAt: Date
     var temperature: TemperatureReading?
     var symptoms: [Symptom]
-    var medications: String?
     var notes: String?
 
     init(
@@ -15,7 +14,6 @@ struct HealthEvent: Identifiable, Codable, Equatable {
         recordedAt: Date,
         temperature: TemperatureReading?,
         symptoms: [Symptom],
-        medications: String?,
         notes: String?
     ) {
         self.id = id
@@ -23,7 +21,6 @@ struct HealthEvent: Identifiable, Codable, Equatable {
         self.recordedAt = recordedAt
         self.temperature = temperature
         self.symptoms = symptoms
-        self.medications = medications?.trimmingCharacters(in: .whitespacesAndNewlines)
         self.notes = notes?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

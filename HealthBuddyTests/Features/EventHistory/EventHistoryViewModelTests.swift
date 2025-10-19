@@ -31,7 +31,6 @@ final class EventHistoryViewModelTests: XCTestCase {
             recordedAt: Date().addingTimeInterval(-3600),
             temperature: TemperatureReading(value: 37.2, unit: .celsius),
             symptoms: [Symptom(label: "Headache", isCustom: false)],
-            medications: nil,
             notes: nil
         )
         let newer = HealthEvent(
@@ -39,7 +38,6 @@ final class EventHistoryViewModelTests: XCTestCase {
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.6, unit: .celsius),
             symptoms: [Symptom(label: "Fever", isCustom: false)],
-            medications: "Paracetamol",
             notes: nil
         )
         let lenaEvent = HealthEvent(
@@ -47,7 +45,6 @@ final class EventHistoryViewModelTests: XCTestCase {
             recordedAt: Date().addingTimeInterval(-1800),
             temperature: TemperatureReading(value: 36.4, unit: .celsius),
             symptoms: [],
-            medications: nil,
             notes: nil
         )
 
@@ -76,7 +73,6 @@ final class EventHistoryViewModelTests: XCTestCase {
                 Symptom(label: "Cough", isCustom: false),
                 Symptom(label: "Sore throat", isCustom: false)
             ],
-            medications: "Ibuprofen",
             notes: "Encourage fluids"
         )
         try store.addEvent(event)
@@ -89,7 +85,6 @@ final class EventHistoryViewModelTests: XCTestCase {
         XCTAssertEqual(entry.severity, .critical)
         XCTAssertTrue(entry.summary.contains("Cough"))
         XCTAssertTrue(entry.summary.contains("39.7"))
-        XCTAssertTrue(entry.summary.contains("Ibuprofen"))
         XCTAssertEqual(entry.notes, "Encourage fluids")
     }
 
@@ -102,7 +97,6 @@ final class EventHistoryViewModelTests: XCTestCase {
                 Symptom(label: "Cough", isCustom: false),
                 Symptom(label: "Sore throat", isCustom: false)
             ],
-            medications: nil,
             notes: nil
         )
         try store.addEvent(event)
@@ -120,7 +114,6 @@ final class EventHistoryViewModelTests: XCTestCase {
             recordedAt: Date(),
             temperature: nil,
             symptoms: [Symptom(label: "Fatigue", isCustom: false)],
-            medications: nil,
             notes: nil
         )
         try store.addEvent(event)

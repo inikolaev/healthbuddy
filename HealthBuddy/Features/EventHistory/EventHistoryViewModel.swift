@@ -15,12 +15,7 @@ struct EventHistoryEntry: Identifiable, Equatable {
     let severity: TemperatureSeverity?
     let summary: String
     let symptoms: [Symptom]
-    let medications: String?
     let notes: String?
-
-    var memberSummary: String {
-        summary
-    }
 }
 
 @MainActor
@@ -79,7 +74,6 @@ enum EventHistoryEntryFactory {
             severity: event.temperature?.severity,
             summary: buildSummary(for: event, locale: locale),
             symptoms: event.symptoms,
-            medications: event.medications,
             notes: event.notes
         )
     }
@@ -94,10 +88,6 @@ enum EventHistoryEntryFactory {
 
         if shouldIncludeTemperature(for: event), let temperature = event.temperature {
             parts.append(temperature.formatted(locale: locale))
-        }
-
-        if let medications = event.medications?.nilIfBlank {
-            parts.append(medications)
         }
 
         return parts.joined(separator: " · ")

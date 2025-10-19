@@ -67,7 +67,6 @@ final class HealthEventLoggerViewModel: ObservableObject {
             recordedAt: trimmedToMinute(form.recordedAt),
             temperature: form.temperature,
             symptoms: symptoms,
-            medications: form.medications?.nilIfBlank,
             notes: form.notes?.nilIfBlank
         )
 
@@ -99,7 +98,6 @@ final class HealthEventLoggerViewModel: ObservableObject {
             recordedAt: trimmedToMinute(form.recordedAt),
             temperature: form.temperature,
             symptoms: symptoms,
-            medications: form.medications?.nilIfBlank,
             notes: form.notes?.nilIfBlank
         )
 

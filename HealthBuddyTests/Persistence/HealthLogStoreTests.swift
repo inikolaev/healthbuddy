@@ -40,7 +40,6 @@ final class HealthLogStoreTests: XCTestCase {
             recordedAt: Date(),
             temperature: TemperatureReading(value: 37.1, unit: .celsius),
             symptoms: [Symptom(label: "Cough", isCustom: false)],
-            medications: "Paracetamol",
             notes: "Rested"
         )
 
@@ -62,7 +61,6 @@ final class HealthLogStoreTests: XCTestCase {
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.3, unit: .celsius),
             symptoms: [Symptom(label: "Headache", isCustom: false)],
-            medications: nil,
             notes: "Slept early"
         )
         try store.addEvent(event)
@@ -83,7 +81,6 @@ final class HealthLogStoreTests: XCTestCase {
             recordedAt: Date(),
             temperature: nil,
             symptoms: [],
-            medications: nil,
             notes: nil
         )
 

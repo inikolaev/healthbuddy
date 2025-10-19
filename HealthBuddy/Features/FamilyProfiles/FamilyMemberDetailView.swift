@@ -187,10 +187,22 @@ private struct MemberEventRow: View {
                 Text(entry.displayDate)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                if let notes = entry.notes, !notes.isEmpty {
+                    Text(notesPrefix(notes))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
         }
         .padding(.vertical, 8)
+    }
+
+    private func notesPrefix(_ notes: String) -> String {
+        let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count > 32 else { return trimmed }
+        let endIndex = trimmed.index(trimmed.startIndex, offsetBy: 32, limitedBy: trimmed.endIndex) ?? trimmed.endIndex
+        return String(trimmed[..<endIndex]) + "…"
     }
 }
 
@@ -205,7 +217,6 @@ private struct MemberEventRow: View {
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.6, unit: .celsius),
             symptoms: [Symptom(label: "Fever", isCustom: false)],
-            medications: "Paracetamol",
             notes: "Improved after rest"
         )
     )

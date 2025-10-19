@@ -32,7 +32,6 @@ final class AppIntegrationTests: XCTestCase {
         var form = HealthEventForm()
         form.temperature = TemperatureReading(value: 38.6, unit: .celsius)
         form.symptomLabels = ["Fever", "Cough"]
-        form.medications = "Paracetamol"
         form.notes = "Kept hydrated"
 
         try loggerVM.logEvent(using: form)

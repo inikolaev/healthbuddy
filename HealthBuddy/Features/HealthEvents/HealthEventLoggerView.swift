@@ -63,7 +63,6 @@ struct HealthEventLoggerView: View {
                         if shouldShowTemperatureSection {
                             temperatureSection
                         }
-                        medicationsSection
                         notesSection
                     }
                 }
@@ -87,6 +86,12 @@ struct HealthEventLoggerView: View {
                 )
             }
             .onAppear(perform: refreshMembersIfNeeded)
+            .onChange(of: form.symptomLabels) { _, _ in
+                clearTemperatureIfNeeded()
+            }
+            .onChange(of: form.customSymptoms) { _, _ in
+                clearTemperatureIfNeeded()
+            }
             .safeAreaInset(edge: .bottom) {
                 if displayPrimaryButton {
                     Button(action: logEvent) {
@@ -205,16 +210,6 @@ struct HealthEventLoggerView: View {
         }
     }
 
-    private var medicationsSection: some View {
-        Section("Medication") {
-            TextField("Optional", text: Binding(
-                get: { form.medications ?? "" },
-                set: { form.medications = $0 }
-            ))
-            .autocorrectionDisabled()
-        }
-    }
-
     private var notesSection: some View {
         Section("Notes") {
             TextField("Care instructions, behaviours, fluids, etc.", text: Binding(
@@ -243,8 +238,7 @@ struct HealthEventLoggerView: View {
         let hasTemperature = temperatureReading != nil
         let hasSymptoms = !form.symptomLabels.isEmpty || !form.customSymptoms.isEmpty
         let hasNotes = !(form.notes?.trimmed.isEmpty ?? true)
-        let hasMedication = !(form.medications?.trimmed.isEmpty ?? true)
-        return hasContext && (hasTemperature || hasSymptoms || hasNotes || hasMedication)
+        return hasContext && (hasTemperature || hasSymptoms || hasNotes)
     }
 
     private func refreshMembersIfNeeded() {
@@ -308,6 +302,14 @@ struct HealthEventLoggerView: View {
             symptomLabels: form.symptomLabels,
             customSymptoms: form.customSymptoms
         )
+    }
+
+    private func clearTemperatureIfNeeded() {
+        if !shouldShowTemperatureSection {
+            temperatureValue = ""
+            temperatureUnit = .celsius
+            form.temperature = nil
+        }
     }
 }
 
@@ -391,7 +393,6 @@ private struct SymptomChip: View {
         recordedAt: Date(),
         temperature: TemperatureReading(value: 38.4, unit: .celsius),
         symptoms: [Symptom(label: "Fever", isCustom: false), Symptom(label: "Body aches", isCustom: true)],
-        medications: "Ibuprofen",
         notes: "Encourage rest"
     )
     _ = try? store.addEvent(event)
