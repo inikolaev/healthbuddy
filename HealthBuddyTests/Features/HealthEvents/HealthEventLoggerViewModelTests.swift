@@ -7,6 +7,7 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
     private var store: HealthLogStore!
     private var sut: HealthEventLoggerViewModel!
     private var member: FamilyMember!
+    private var calendar: Calendar!
 
     override func setUpWithError() throws {
         temporaryDirectory = FileManager.default
@@ -16,13 +17,15 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         store = HealthLogStore(directory: temporaryDirectory)
         member = FamilyMember(id: UUID(), name: "Jordan")
         try store.addMember(member)
-        sut = HealthEventLoggerViewModel(store: store, memberId: member.id)
+        calendar = Calendar(identifier: .gregorian)
+        sut = HealthEventLoggerViewModel(store: store, memberId: member.id, calendar: calendar)
     }
 
     override func tearDownWithError() throws {
         sut = nil
         store = nil
         member = nil
+        calendar = nil
         try? FileManager.default.removeItem(at: temporaryDirectory)
     }
 
@@ -76,7 +79,6 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         )
         try store.addEvent(original)
 
-        let calendar = Calendar(identifier: .gregorian)
         let newRecordedAt = calendar.date(byAdding: .minute, value: -90, to: Date()) ?? Date()
 
         var form = HealthEventForm(memberId: member.id, recordedAt: newRecordedAt)
@@ -95,8 +97,24 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         XCTAssertTrue(updated.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))
         XCTAssertEqual(updated.notes, "Hydrate often")
 
-        let trimmedRecordedAt = calendar.date(bySettingSecond: 0, of: newRecordedAt) ?? newRecordedAt
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: newRecordedAt)
+        let trimmedRecordedAt = calendar.date(from: components) ?? newRecordedAt
         XCTAssertEqual(updated.recordedAt, trimmedRecordedAt)
+    }
+
+    func testDeleteEventRemovesItFromStore() throws {
+        let original = HealthEvent(
+            memberId: member.id,
+            recordedAt: Date(),
+            temperature: nil,
+            symptoms: [Symptom(label: "Cough", isCustom: false)],
+            notes: nil
+        )
+        try store.addEvent(original)
+
+        try sut.deleteEvent(id: original.id)
+
+        XCTAssertTrue(store.loadState().events.isEmpty)
     }
 
     func testLogEventRejectsTemperatureOutsideSafeRange() {

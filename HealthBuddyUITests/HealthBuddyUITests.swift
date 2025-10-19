@@ -9,33 +9,67 @@ import XCTest
 
 final class HealthBuddyUITests: XCTestCase {
 
+    private var app: XCUIApplication!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+        app = XCUIApplication()
+        app.launchArguments = ["-uiTesting", "-uiTestingResetData"]
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        app = nil
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
+    func testLogAndDeleteHealthEventFlow() throws {
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-    }
+        XCTAssertTrue(app.navigationBars["Family"].waitForExistence(timeout: 5))
 
-    @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
+        app.navigationBars["Family"].buttons["Add Member"].tap()
+
+        let nameField = app.textFields["Name"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 2))
+        nameField.tap()
+        nameField.typeText("Jordan")
+
+        app.navigationBars["New Family Member"].buttons["Save"].tap()
+
+        let memberCell = app.cells.containing(.staticText, identifier: "Jordan").firstMatch
+        XCTAssertTrue(memberCell.waitForExistence(timeout: 2))
+        memberCell.tap()
+
+        let logEventButton = app.buttons["Log Health Event"]
+        XCTAssertTrue(logEventButton.waitForExistence(timeout: 2))
+        logEventButton.tap()
+
+        let addSymptomButton = app.buttons["Add Symptom"]
+        XCTAssertTrue(addSymptomButton.waitForExistence(timeout: 2))
+        addSymptomButton.tap()
+
+        let coughButton = app.buttons["Cough"]
+        XCTAssertTrue(coughButton.waitForExistence(timeout: 2))
+        coughButton.tap()
+
+        let saveButton = app.buttons["Save Health Event"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 2))
+        saveButton.tap()
+
+        let eventCell = app.cells.containing(.staticText, identifier: "Cough").firstMatch
+        XCTAssertTrue(eventCell.waitForExistence(timeout: 2))
+        eventCell.tap()
+
+        let deleteButton = app.navigationBars["Edit Health Event"].buttons["Delete"]
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 2))
+        deleteButton.tap()
+
+        let confirmDeleteButton = app.buttons["Delete Event"]
+        XCTAssertTrue(confirmDeleteButton.waitForExistence(timeout: 2))
+        confirmDeleteButton.tap()
+
+        let noEventsLabel = app.staticTexts["No health events logged yet."]
+        XCTAssertTrue(noEventsLabel.waitForExistence(timeout: 2))
+        XCTAssertFalse(eventCell.exists)
     }
 }

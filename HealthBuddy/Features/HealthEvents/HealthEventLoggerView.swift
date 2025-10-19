@@ -8,6 +8,7 @@ struct HealthEventLoggerView: View {
     @State private var isPresentingSymptomPicker = false
     @State private var customSymptomDraft = ""
     @State private var alertMessage: String?
+    @State private var isPresentingDeleteConfirmation = false
 
     private let store: any HealthLogStoring
     private let contextMemberId: UUID?
@@ -69,6 +70,17 @@ struct HealthEventLoggerView: View {
             }
             .navigationTitle(isEditing ? "Edit Health Event" : "New Health Event")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if isEditing {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            isPresentingDeleteConfirmation = true
+                        } label: {
+                            Text("Delete")
+                        }
+                    }
+                }
+            }
             .alert("Unable to Save", isPresented: Binding(
                 get: { alertMessage != nil },
                 set: { if !$0 { alertMessage = nil } }
@@ -76,6 +88,14 @@ struct HealthEventLoggerView: View {
                 Button("OK", role: .cancel) { alertMessage = nil }
             } message: {
                 Text(alertMessage ?? "")
+            }
+            .confirmationDialog("Delete Health Event?", isPresented: $isPresentingDeleteConfirmation, titleVisibility: .visible) {
+                Button("Delete Event", role: .destructive) {
+                    performDelete()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Deleting removes this entry from the log and cannot be undone.")
             }
             .sheet(isPresented: $isPresentingSymptomPicker) {
                 SymptomPickerView(
@@ -129,6 +149,18 @@ struct HealthEventLoggerView: View {
     private var isEditing: Bool { editingEvent != nil }
 
     private var primaryButtonTitle: String { isEditing ? "Update Health Event" : "Save Health Event" }
+
+    private func performDelete() {
+        guard let editingEvent else { return }
+        isPresentingDeleteConfirmation = false
+        do {
+            try viewModel.deleteEvent(id: editingEvent.id)
+            onSave?()
+            dismiss()
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
 
     private var memberSection: some View {
         Section("Family Member") {

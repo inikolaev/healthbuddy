@@ -104,6 +104,22 @@ final class HealthEventLoggerViewModel: ObservableObject {
         try store.addEvent(updatedEvent)
     }
 
+    func deleteEvent(id: UUID) throws {
+        guard let event = store.loadState().events.first(where: { $0.id == id }) else {
+            throw HealthEventLoggerError.eventNotFound
+        }
+
+        if let contextMemberId, event.memberId != contextMemberId {
+            throw HealthEventLoggerError.memberNotFound
+        }
+
+        do {
+            try store.removeEvent(id: id)
+        } catch {
+            throw HealthEventLoggerError.eventNotFound
+        }
+    }
+
     static func requiresTemperature(symptomLabels: [String], customSymptoms: [String]) -> Bool {
         let indicators = ["fever", "temperature", "pyrexia", "chills", "febrile"]
         let normalized = symptomLabels + customSymptoms
