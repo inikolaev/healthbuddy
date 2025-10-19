@@ -26,4 +26,14 @@ struct HealthEventForm {
         self.medications = medications
         self.notes = notes
     }
+
+    init(event: HealthEvent) {
+        self.memberId = event.memberId
+        self.recordedAt = event.recordedAt
+        self.temperature = event.temperature
+        self.symptomLabels = event.symptoms.filter { !$0.isCustom }.map { $0.label }
+        self.customSymptoms = event.symptoms.filter { $0.isCustom }.map { $0.label }
+        self.medications = event.medications
+        self.notes = event.notes
+    }
 }

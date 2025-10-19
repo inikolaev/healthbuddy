@@ -77,4 +77,28 @@ final class FamilyMemberDetailViewModelTests: XCTestCase {
         XCTAssertEqual(sut.member.name, "Jordan Smith")
         XCTAssertEqual(store.loadState().members.first(where: { $0.id == member.id })?.notes, "Peanut allergy, seasonal asthma")
     }
+
+    func testLoadMoreEventsWhenReachingBottom() throws {
+        let now = Date()
+        for index in 0..<25 {
+            let event = HealthEvent(
+                memberId: member.id,
+                recordedAt: now.addingTimeInterval(TimeInterval(-index * 60)),
+                temperature: nil,
+                symptoms: [Symptom(label: "Symptom \(index)", isCustom: false)],
+                medications: nil,
+                notes: nil
+            )
+            try store.addEvent(event)
+        }
+
+        let sut = FamilyMemberDetailViewModel(store: store, memberId: member.id, historyLimit: 20, locale: Locale(identifier: "en_US_POSIX"))
+        XCTAssertEqual(sut.recentEntries.count, 20)
+
+        if let last = sut.recentEntries.last {
+            sut.loadMoreIfNeeded(for: last)
+        }
+
+        XCTAssertEqual(sut.recentEntries.count, 25)
+    }
 }

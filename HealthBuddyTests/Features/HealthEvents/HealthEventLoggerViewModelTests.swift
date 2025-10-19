@@ -51,6 +51,58 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         XCTAssertTrue(event.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))
     }
 
+    func testLogEventRespectsCustomTimestamp() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        var components = DateComponents(calendar: calendar, year: 2025, month: 6, day: 1, hour: 14, minute: 27, second: 45)
+        let recordedDate = components.date ?? Date()
+
+        var form = HealthEventForm(memberId: member.id, recordedAt: recordedDate)
+        form.temperature = TemperatureReading(value: 37.6, unit: .celsius)
+
+        try sut.logEvent(using: form)
+
+        let storedEvent = try XCTUnwrap(store.loadState().events.first)
+        components.second = 0
+        let expected = components.date ?? recordedDate
+        XCTAssertEqual(storedEvent.recordedAt, expected)
+    }
+
+    func testUpdateEventReplacesExistingRecord() throws {
+        let original = HealthEvent(
+            memberId: member.id,
+            recordedAt: Date(),
+            temperature: TemperatureReading(value: 38.0, unit: .celsius),
+            symptoms: [Symptom(label: "Cough", isCustom: false)],
+            medications: nil,
+            notes: nil
+        )
+        try store.addEvent(original)
+
+        let calendar = Calendar(identifier: .gregorian)
+        let newRecordedAt = calendar.date(byAdding: .minute, value: -90, to: Date()) ?? Date()
+
+        var form = HealthEventForm(memberId: member.id, recordedAt: newRecordedAt)
+        form.symptomLabels = ["Fever"]
+        form.customSymptoms = ["Body aches"]
+        form.medications = "Ibuprofen"
+        form.notes = "Hydrate often"
+
+        try sut.updateEvent(id: original.id, using: form)
+
+        let state = store.loadState()
+        XCTAssertEqual(state.events.count, 1)
+        let updated = try XCTUnwrap(state.events.first)
+        XCTAssertEqual(updated.id, original.id)
+        XCTAssertNil(updated.temperature)
+        XCTAssertTrue(updated.symptoms.contains(where: { !$0.isCustom && $0.label == "Fever" }))
+        XCTAssertTrue(updated.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))
+        XCTAssertEqual(updated.medications, "Ibuprofen")
+        XCTAssertEqual(updated.notes, "Hydrate often")
+
+        let trimmedRecordedAt = calendar.date(bySettingSecond: 0, of: newRecordedAt) ?? newRecordedAt
+        XCTAssertEqual(updated.recordedAt, trimmedRecordedAt)
+    }
+
     func testLogEventRejectsTemperatureOutsideSafeRange() {
         var form = HealthEventForm()
         form.temperature = TemperatureReading(value: 28.0, unit: .celsius)

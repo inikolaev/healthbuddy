@@ -10,6 +10,7 @@ struct FamilyMemberDetailView: View {
     @State private var editNotes = ""
     @State private var isPresentingLogEvent = false
     @State private var alertMessage: String?
+    @State private var editingEvent: HealthEvent?
 
     init(store: any HealthLogStoring, memberId: UUID) {
         self.store = store
@@ -29,10 +30,17 @@ struct FamilyMemberDetailView: View {
             } else {
                 Section("Recent Events") {
                     ForEach(viewModel.recentEntries) { entry in
-                        MemberEventRow(entry: entry)
-                            .onAppear {
-                                viewModel.loadMoreIfNeeded(for: entry)
+                        Button {
+                            if let event = viewModel.event(with: entry.id) {
+                                editingEvent = event
                             }
+                        } label: {
+                            MemberEventRow(entry: entry)
+                        }
+                        .buttonStyle(.plain)
+                        .onAppear {
+                            handleEntryAppear(entry)
+                        }
                     }
                 }
                 Section { Color.clear.frame(height: 72) }
@@ -59,6 +67,11 @@ struct FamilyMemberDetailView: View {
                 viewModel.refresh()
             }
         }
+        .sheet(item: $editingEvent) { event in
+            HealthEventLoggerView(store: store, editingEvent: event) {
+                viewModel.refresh()
+            }
+        }
         .alert("Update Failed", isPresented: Binding(
             get: { alertMessage != nil },
             set: { if !$0 { alertMessage = nil } }
@@ -75,6 +88,7 @@ struct FamilyMemberDetailView: View {
         .safeAreaInset(edge: .bottom) {
             Button {
                 isPresentingLogEvent = true
+                editingEvent = nil
             } label: {
                 Label("Log Health Event", systemImage: "stethoscope")
                     .font(.headline)
@@ -84,7 +98,16 @@ struct FamilyMemberDetailView: View {
             .controlSize(.large)
             .padding(.horizontal)
             .padding(.vertical, 12)
-            .background(Color(.systemBackground))
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.white.opacity(0.12))
+                    )
+            )
+            .padding(.horizontal)
+            .padding(.bottom, 6)
         }
     }
 
@@ -140,6 +163,10 @@ struct FamilyMemberDetailView: View {
         } catch {
             alertMessage = error.localizedDescription
         }
+    }
+
+    private func handleEntryAppear(_ entry: EventHistoryEntry) {
+        viewModel.loadMoreIfNeeded(for: entry)
     }
 }
 

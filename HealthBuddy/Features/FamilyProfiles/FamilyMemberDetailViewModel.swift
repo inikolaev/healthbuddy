@@ -71,6 +71,10 @@ final class FamilyMemberDetailViewModel: ObservableObject {
         recentEntries = entries(limit: currentLimit, from: allEvents)
     }
 
+    func event(with id: UUID) -> HealthEvent? {
+        store.loadState().events.first { $0.id == id }
+    }
+
     private func entries(limit: Int, from events: [HealthEvent]) -> [EventHistoryEntry] {
         events
             .filter { $0.memberId == memberId }

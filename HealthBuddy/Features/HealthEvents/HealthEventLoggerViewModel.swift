@@ -9,6 +9,7 @@ enum HealthEventLoggerError: Error, Equatable {
     case missingMemberSelection
     case invalidTemperature
     case memberNotFound
+    case eventNotFound
 }
 
 @MainActor
@@ -71,6 +72,38 @@ final class HealthEventLoggerViewModel: ObservableObject {
         )
 
         try store.addEvent(event)
+    }
+
+    func updateEvent(id: UUID, using form: HealthEventForm) throws {
+        guard let existing = store.loadState().events.first(where: { $0.id == id }) else {
+            throw HealthEventLoggerError.eventNotFound
+        }
+
+        let targetMemberId = form.memberId ?? existing.memberId
+        guard store.loadState().members.contains(where: { $0.id == targetMemberId }) else {
+            throw HealthEventLoggerError.memberNotFound
+        }
+
+        if let reading = form.temperature {
+            let celsiusValue = reading.celsiusValue
+            guard Self.validTemperatureRangeCelsius.contains(celsiusValue) else {
+                throw HealthEventLoggerError.invalidTemperature
+            }
+        }
+
+        let symptoms = normalizeSymptoms(predefined: form.symptomLabels, custom: form.customSymptoms)
+
+        let updatedEvent = HealthEvent(
+            id: id,
+            memberId: targetMemberId,
+            recordedAt: trimmedToMinute(form.recordedAt),
+            temperature: form.temperature,
+            symptoms: symptoms,
+            medications: form.medications?.nilIfBlank,
+            notes: form.notes?.nilIfBlank
+        )
+
+        try store.addEvent(updatedEvent)
     }
 
     private func normalizeSymptoms(predefined: [String], custom: [String]) -> [Symptom] {

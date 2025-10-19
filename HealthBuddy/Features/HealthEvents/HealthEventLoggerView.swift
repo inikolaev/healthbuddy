@@ -3,23 +3,41 @@ import SwiftUI
 struct HealthEventLoggerView: View {
     @StateObject private var viewModel: HealthEventLoggerViewModel
     @State private var form: HealthEventForm
-    @State private var temperatureValue = ""
-    @State private var temperatureUnit: TemperatureUnit = .celsius
+    @State private var temperatureValue: String
+    @State private var temperatureUnit: TemperatureUnit
     @State private var isPresentingSymptomPicker = false
     @State private var customSymptomDraft = ""
     @State private var alertMessage: String?
 
     private let store: any HealthLogStoring
     private let contextMemberId: UUID?
+    private let editingEvent: HealthEvent?
     private let onSave: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
-    init(store: any HealthLogStoring, memberId: UUID? = nil, onSave: (() -> Void)? = nil) {
+    init(store: any HealthLogStoring, memberId: UUID? = nil, editingEvent: HealthEvent? = nil, onSave: (() -> Void)? = nil) {
         self.store = store
-        self.contextMemberId = memberId
+        self.editingEvent = editingEvent
+        let initialMemberId = memberId ?? editingEvent?.memberId
+        self.contextMemberId = initialMemberId
         self.onSave = onSave
-        _viewModel = StateObject(wrappedValue: HealthEventLoggerViewModel(store: store, memberId: memberId))
-        _form = State(initialValue: HealthEventForm(memberId: memberId))
+        let viewModel = HealthEventLoggerViewModel(store: store, memberId: initialMemberId)
+        _viewModel = StateObject(wrappedValue: viewModel)
+
+        if let event = editingEvent {
+            _form = State(initialValue: HealthEventForm(event: event))
+            if let temperature = event.temperature {
+                _temperatureValue = State(initialValue: Self.editableTemperatureString(temperature.value))
+                _temperatureUnit = State(initialValue: temperature.unit)
+            } else {
+                _temperatureValue = State(initialValue: "")
+                _temperatureUnit = State(initialValue: .celsius)
+            }
+        } else {
+            _form = State(initialValue: HealthEventForm(memberId: initialMemberId))
+            _temperatureValue = State(initialValue: "")
+            _temperatureUnit = State(initialValue: .celsius)
+        }
     }
 
     var body: some View {
@@ -36,6 +54,7 @@ struct HealthEventLoggerView: View {
                         if contextMemberId == nil {
                             memberSection
                         }
+                        dateSection
                         temperatureSection
                         symptomsSection
                         medicationsSection
@@ -43,7 +62,7 @@ struct HealthEventLoggerView: View {
                     }
                 }
             }
-            .navigationTitle("New Health Event")
+            .navigationTitle(isEditing ? "Edit Health Event" : "New Health Event")
             .navigationBarTitleDisplayMode(.inline)
             .alert("Unable to Save", isPresented: Binding(
                 get: { alertMessage != nil },
@@ -65,7 +84,7 @@ struct HealthEventLoggerView: View {
             .safeAreaInset(edge: .bottom) {
                 if displayPrimaryButton {
                     Button(action: logEvent) {
-                        Text("Save Health Event")
+                        Text(primaryButtonTitle)
                             .font(.headline)
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
@@ -74,7 +93,16 @@ struct HealthEventLoggerView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 12)
                     .disabled(!canSave)
-                    .background(Color(.systemBackground))
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Color.white.opacity(0.12))
+                            )
+                    )
+                    .padding(.horizontal)
+                    .padding(.bottom, 6)
                 }
             }
         }
@@ -87,6 +115,10 @@ struct HealthEventLoggerView: View {
         }
     }
 
+    private var isEditing: Bool { editingEvent != nil }
+
+    private var primaryButtonTitle: String { isEditing ? "Update Health Event" : "Save Health Event" }
+
     private var memberSection: some View {
         Section("Family Member") {
             Picker("Member", selection: Binding(
@@ -98,6 +130,19 @@ struct HealthEventLoggerView: View {
                 }
             }
             .pickerStyle(.menu)
+        }
+    }
+
+    private var dateSection: some View {
+        Section("Date & Time") {
+            DatePicker(
+                "Logged at",
+                selection: Binding(
+                    get: { form.recordedAt },
+                    set: { form.recordedAt = $0 }
+                ),
+                displayedComponents: [.date, .hourAndMinute]
+            )
         }
     }
 
@@ -236,7 +281,11 @@ struct HealthEventLoggerView: View {
         workingForm.temperature = temperatureReading
 
         do {
-            try viewModel.logEvent(using: workingForm)
+            if let editingEvent = editingEvent {
+                try viewModel.updateEvent(id: editingEvent.id, using: workingForm)
+            } else {
+                try viewModel.logEvent(using: workingForm)
+            }
             onSave?()
             dismiss()
         } catch {
@@ -244,11 +293,8 @@ struct HealthEventLoggerView: View {
         }
     }
 
-    private func resetForm() {
-        form = HealthEventForm(memberId: contextMemberId)
-        temperatureValue = ""
-        temperatureUnit = .celsius
-        customSymptomDraft = ""
+    private static func editableTemperatureString(_ value: Double) -> String {
+        String(format: "%.1f", value)
     }
 }
 
@@ -320,6 +366,24 @@ private struct SymptomChip: View {
     _ = try? store.addMember(member)
     return NavigationStack {
         HealthEventLoggerView(store: store, memberId: member.id)
+    }
+}
+
+#Preview("Editing") {
+    let store = PreviewHealthLogStore()
+    let member = FamilyMember(name: "Jordan", notes: "Peanut allergy")
+    _ = try? store.addMember(member)
+    let event = HealthEvent(
+        memberId: member.id,
+        recordedAt: Date(),
+        temperature: TemperatureReading(value: 38.4, unit: .celsius),
+        symptoms: [Symptom(label: "Fever", isCustom: false), Symptom(label: "Body aches", isCustom: true)],
+        medications: "Ibuprofen",
+        notes: "Encourage rest"
+    )
+    _ = try? store.addEvent(event)
+    return NavigationStack {
+        HealthEventLoggerView(store: store, editingEvent: event)
     }
 }
 #endif
