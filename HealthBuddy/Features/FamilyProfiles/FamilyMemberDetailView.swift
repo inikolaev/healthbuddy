@@ -67,7 +67,7 @@ struct FamilyMemberDetailView: View {
         } message: {
             Text(alertMessage ?? "")
         }
-        .onChange(of: isPresentingLogEvent) { newValue in
+        .onChange(of: isPresentingLogEvent) { _, newValue in
             if !newValue {
                 viewModel.refresh()
             }

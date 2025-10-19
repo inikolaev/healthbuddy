@@ -1,5 +1,10 @@
 import Foundation
 
+private let defaultSymptomLibrary: [String] = [
+    "Fever", "Headache", "Sore throat", "Cough", "Congestion",
+    "Runny nose", "Chills", "Fatigue", "Muscle aches", "Nausea"
+]
+
 enum HealthEventLoggerError: Error, Equatable {
     case missingMemberSelection
     case invalidTemperature
@@ -16,15 +21,11 @@ final class HealthEventLoggerViewModel: ObservableObject {
     private let contextMemberId: UUID?
 
     static let validTemperatureRangeCelsius: ClosedRange<Double> = 30.0...43.0
-    private static let defaultSymptomLibrary: [String] = [
-        "Fever", "Headache", "Sore throat", "Cough", "Congestion",
-        "Runny nose", "Chills", "Fatigue", "Muscle aches", "Nausea"
-    ]
 
     init(
         store: any HealthLogStoring,
         memberId: UUID? = nil,
-        symptomLibrary: [String] = HealthEventLoggerViewModel.defaultSymptomLibrary,
+        symptomLibrary: [String] = defaultSymptomLibrary,
         calendar: Calendar = .current
     ) {
         self.store = store
