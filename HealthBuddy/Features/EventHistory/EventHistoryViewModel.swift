@@ -29,13 +29,16 @@ final class EventHistoryViewModel: ObservableObject {
 
     private let store: any HealthLogStoring
     private let dateFormatter: DateFormatter
+    private let locale: Locale
 
     init(store: any HealthLogStoring, locale: Locale = .current) {
         self.store = store
-        self.dateFormatter = DateFormatter()
-        dateFormatter.locale = locale
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
+        self.locale = locale
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        self.dateFormatter = formatter
         refresh()
     }
 
@@ -61,12 +64,12 @@ final class EventHistoryViewModel: ObservableObject {
     }
 
     private func makeEntry(for event: HealthEvent, member: FamilyMember) -> EventHistoryEntry {
-        EventHistoryEntryFactory.makeEntry(event: event, member: member, dateFormatter: dateFormatter)
+        EventHistoryEntryFactory.makeEntry(event: event, member: member, dateFormatter: dateFormatter, locale: locale)
     }
 }
 
 enum EventHistoryEntryFactory {
-    static func makeEntry(event: HealthEvent, member: FamilyMember, dateFormatter: DateFormatter) -> EventHistoryEntry {
+    static func makeEntry(event: HealthEvent, member: FamilyMember, dateFormatter: DateFormatter, locale: Locale) -> EventHistoryEntry {
         let date = event.recordedAt
         return EventHistoryEntry(
             id: event.id,
@@ -74,14 +77,14 @@ enum EventHistoryEntryFactory {
             displayDate: dateFormatter.string(from: date),
             temperature: event.temperature,
             severity: event.temperature?.severity,
-            summary: buildSummary(for: event),
+            summary: buildSummary(for: event, locale: locale),
             symptoms: event.symptoms,
             medications: event.medications,
             notes: event.notes
         )
     }
 
-    private static func buildSummary(for event: HealthEvent) -> String {
+    private static func buildSummary(for event: HealthEvent, locale: Locale) -> String {
         var parts: [String] = []
 
         let symptomText = event.symptoms.map { $0.label }.joined(separator: ", ")
@@ -90,7 +93,7 @@ enum EventHistoryEntryFactory {
         }
 
         if let temperature = event.temperature {
-            parts.append(temperature.formatted())
+            parts.append(temperature.formatted(locale: locale))
         }
 
         if let medications = event.medications?.nilIfBlank {

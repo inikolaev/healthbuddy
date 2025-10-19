@@ -11,6 +11,7 @@ final class FamilyMemberDetailViewModel: ObservableObject {
     private var currentLimit: Int
     private let dateFormatter: DateFormatter
     private let calendar: Calendar
+    private let locale: Locale
 
     init(
         store: any HealthLogStoring,
@@ -24,6 +25,7 @@ final class FamilyMemberDetailViewModel: ObservableObject {
         self.pageSize = historyLimit
         self.currentLimit = historyLimit
         self.calendar = calendar
+        self.locale = locale
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.dateStyle = .medium
@@ -74,6 +76,6 @@ final class FamilyMemberDetailViewModel: ObservableObject {
             .filter { $0.memberId == memberId }
             .sorted { $0.recordedAt > $1.recordedAt }
             .prefix(limit)
-            .map { EventHistoryEntryFactory.makeEntry(event: $0, member: member, dateFormatter: dateFormatter) }
+            .map { EventHistoryEntryFactory.makeEntry(event: $0, member: member, dateFormatter: dateFormatter, locale: locale) }
     }
 }

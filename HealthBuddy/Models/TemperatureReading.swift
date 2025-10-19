@@ -52,11 +52,11 @@ struct TemperatureReading: Codable, Equatable {
         }
     }
 
-    func formatted(decimals: Int = 1) -> String {
+    func formatted(decimals: Int = 1, locale: Locale = .current) -> String {
         let formatter = NumberFormatter()
         formatter.maximumFractionDigits = decimals
         formatter.minimumFractionDigits = decimals
-        formatter.locale = Locale.current
+        formatter.locale = locale
         let number = NSNumber(value: value)
         let formattedValue = formatter.string(from: number) ?? String(format: "%0.*f", decimals, value)
         let unitSuffix = unit == .celsius ? "°C" : "°F"
