@@ -71,7 +71,11 @@ final class EventHistoryViewModelTests: XCTestCase {
             memberId: jordan.id,
             recordedAt: Date(),
             temperature: TemperatureReading(value: 39.7, unit: .celsius),
-            symptoms: [Symptom(label: "Cough", isCustom: false), Symptom(label: "Sore throat", isCustom: false)],
+            symptoms: [
+                Symptom(label: "Fever", isCustom: false),
+                Symptom(label: "Cough", isCustom: false),
+                Symptom(label: "Sore throat", isCustom: false)
+            ],
             medications: "Ibuprofen",
             notes: "Encourage fluids"
         )
@@ -87,6 +91,27 @@ final class EventHistoryViewModelTests: XCTestCase {
         XCTAssertTrue(entry.summary.contains("39.7"))
         XCTAssertTrue(entry.summary.contains("Ibuprofen"))
         XCTAssertEqual(entry.notes, "Encourage fluids")
+    }
+
+    func testSummaryOmitsTemperatureWhenNoFeverRelatedSymptoms() throws {
+        let event = HealthEvent(
+            memberId: jordan.id,
+            recordedAt: Date(),
+            temperature: TemperatureReading(value: 38.4, unit: .celsius),
+            symptoms: [
+                Symptom(label: "Cough", isCustom: false),
+                Symptom(label: "Sore throat", isCustom: false)
+            ],
+            medications: nil,
+            notes: nil
+        )
+        try store.addEvent(event)
+
+        let sut = EventHistoryViewModel(store: store, locale: Locale(identifier: "en_US_POSIX"))
+        let entry = try XCTUnwrap(sut.sections.first?.entries.first)
+
+        XCTAssertFalse(entry.summary.contains("38.4"))
+        XCTAssertTrue(entry.summary.contains("Cough"))
     }
 
     func testEntryHandlesMissingTemperature() throws {

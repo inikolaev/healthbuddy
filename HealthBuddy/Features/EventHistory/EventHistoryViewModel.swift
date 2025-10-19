@@ -92,7 +92,7 @@ enum EventHistoryEntryFactory {
             parts.append(symptomText)
         }
 
-        if let temperature = event.temperature {
+        if shouldIncludeTemperature(for: event), let temperature = event.temperature {
             parts.append(temperature.formatted(locale: locale))
         }
 
@@ -101,5 +101,14 @@ enum EventHistoryEntryFactory {
         }
 
         return parts.joined(separator: " · ")
+    }
+
+    private static func shouldIncludeTemperature(for event: HealthEvent) -> Bool {
+        guard event.temperature != nil else { return false }
+        let keywords = ["fever", "temperature", "pyrexia", "febrile"]
+        return event.symptoms.contains { symptom in
+            let label = symptom.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return keywords.contains { keyword in label.contains(keyword) }
+        }
     }
 }
