@@ -106,6 +106,15 @@ final class HealthEventLoggerViewModel: ObservableObject {
         try store.addEvent(updatedEvent)
     }
 
+    static func requiresTemperature(symptomLabels: [String], customSymptoms: [String]) -> Bool {
+        let indicators = ["fever", "temperature", "pyrexia", "chills", "febrile"]
+        let normalized = symptomLabels + customSymptoms
+        return normalized.contains { label in
+            let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return indicators.contains(where: { trimmed.contains($0) })
+        }
+    }
+
     private func normalizeSymptoms(predefined: [String], custom: [String]) -> [Symptom] {
         var seen = Set<String>()
 

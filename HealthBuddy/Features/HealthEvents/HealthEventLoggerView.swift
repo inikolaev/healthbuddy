@@ -26,7 +26,11 @@ struct HealthEventLoggerView: View {
 
         if let event = editingEvent {
             _form = State(initialValue: HealthEventForm(event: event))
-            if let temperature = event.temperature {
+            let showTemperature = HealthEventLoggerViewModel.requiresTemperature(
+                symptomLabels: _form.wrappedValue.symptomLabels,
+                customSymptoms: _form.wrappedValue.customSymptoms
+            )
+            if showTemperature, let temperature = event.temperature {
                 _temperatureValue = State(initialValue: Self.editableTemperatureString(temperature.value))
                 _temperatureUnit = State(initialValue: temperature.unit)
             } else {
@@ -55,8 +59,10 @@ struct HealthEventLoggerView: View {
                             memberSection
                         }
                         dateSection
-                        temperatureSection
                         symptomsSection
+                        if shouldShowTemperatureSection {
+                            temperatureSection
+                        }
                         medicationsSection
                         notesSection
                     }
@@ -228,7 +234,7 @@ struct HealthEventLoggerView: View {
     }
 
     private var temperatureReading: TemperatureReading? {
-        guard let value = Double(temperatureValue) else { return nil }
+        guard shouldShowTemperatureSection, let value = Double(temperatureValue) else { return nil }
         return TemperatureReading(value: value, unit: temperatureUnit)
     }
 
@@ -295,6 +301,13 @@ struct HealthEventLoggerView: View {
 
     private static func editableTemperatureString(_ value: Double) -> String {
         String(format: "%.1f", value)
+    }
+
+    private var shouldShowTemperatureSection: Bool {
+        HealthEventLoggerViewModel.requiresTemperature(
+            symptomLabels: form.symptomLabels,
+            customSymptoms: form.customSymptoms
+        )
     }
 }
 

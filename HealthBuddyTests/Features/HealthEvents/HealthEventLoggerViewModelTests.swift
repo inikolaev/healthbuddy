@@ -122,4 +122,40 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         XCTAssertNil(event.temperature)
         XCTAssertEqual(event.symptoms.first?.label, "Fever")
     }
+
+    func testRequiresTemperatureWhenFeverSelected() {
+        XCTAssertTrue(
+            HealthEventLoggerViewModel.requiresTemperature(
+                symptomLabels: ["fever"],
+                customSymptoms: []
+            )
+        )
+    }
+
+    func testRequiresTemperatureWhenChillsSelected() {
+        XCTAssertTrue(
+            HealthEventLoggerViewModel.requiresTemperature(
+                symptomLabels: ["Cough"],
+                customSymptoms: ["chills"]
+            )
+        )
+    }
+
+    func testRequiresTemperatureIsCaseInsensitiveAndTrimmed() {
+        XCTAssertTrue(
+            HealthEventLoggerViewModel.requiresTemperature(
+                symptomLabels: ["  Fever "],
+                customSymptoms: []
+            )
+        )
+    }
+
+    func testRequiresTemperatureFalseWhenNoIndicatorsPresent() {
+        XCTAssertFalse(
+            HealthEventLoggerViewModel.requiresTemperature(
+                symptomLabels: ["cough", "sore throat"],
+                customSymptoms: ["body aches"]
+            )
+        )
+    }
 }
