@@ -20,7 +20,7 @@ struct FamilyMemberDetailView: View {
 
     var body: some View {
         List {
-            profileSection
+            notesSection
 
             if viewModel.recentEntries.isEmpty {
                 Section("Recent Events") {
@@ -111,21 +111,14 @@ struct FamilyMemberDetailView: View {
         }
     }
 
-    private var profileSection: some View {
-        Section("Profile") {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(viewModel.member.name)
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                if let notes = viewModel.member.notes, !notes.isEmpty {
-                    Text(notes)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("No notes yet. Add allergies, chronic conditions, or care preferences.")
-                        .foregroundStyle(.secondary)
-                }
+    @ViewBuilder
+    private var notesSection: some View {
+        if let notes = viewModel.member.notes?.nilIfBlank {
+            Section("Notes") {
+                Text(notes)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 6)
             }
-            .padding(.vertical, 6)
         }
     }
 
