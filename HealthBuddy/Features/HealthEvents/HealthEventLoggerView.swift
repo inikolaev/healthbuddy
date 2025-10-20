@@ -15,6 +15,7 @@ struct HealthEventLoggerView: View {
     private let editingEvent: HealthEvent?
     private let onSave: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
 
     init(store: any HealthLogStoring, memberId: UUID? = nil, editingEvent: HealthEvent? = nil, onSave: (() -> Void)? = nil) {
         self.store = store
@@ -32,7 +33,8 @@ struct HealthEventLoggerView: View {
                 customSymptoms: _form.wrappedValue.customSymptoms
             )
             if showTemperature, let temperature = event.temperature {
-                _temperatureValue = State(initialValue: Self.editableTemperatureString(temperature.value))
+                let formatted = LocalizedDecimalFormatter.string(from: temperature.value, locale: Locale.current, fractionDigits: 1)
+                _temperatureValue = State(initialValue: formatted)
                 _temperatureUnit = State(initialValue: temperature.unit)
             } else {
                 _temperatureValue = State(initialValue: "")
@@ -261,7 +263,8 @@ struct HealthEventLoggerView: View {
     }
 
     private var temperatureReading: TemperatureReading? {
-        guard shouldShowTemperatureSection, let value = Double(temperatureValue) else { return nil }
+        guard shouldShowTemperatureSection,
+              let value = LocalizedDecimalFormatter.parse(temperatureValue, locale: locale) else { return nil }
         return TemperatureReading(value: value, unit: temperatureUnit)
     }
 
@@ -323,10 +326,6 @@ struct HealthEventLoggerView: View {
         } catch {
             alertMessage = error.localizedDescription
         }
-    }
-
-    private static func editableTemperatureString(_ value: Double) -> String {
-        String(format: "%.1f", value)
     }
 
     private var shouldShowTemperatureSection: Bool {
