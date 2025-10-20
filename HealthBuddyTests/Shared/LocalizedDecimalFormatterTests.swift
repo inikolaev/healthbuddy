@@ -5,13 +5,15 @@ final class LocalizedDecimalFormatterTests: XCTestCase {
     func testParseHandlesCommaDecimalSeparator() {
         let locale = Locale(identifier: "fr_FR")
         let result = LocalizedDecimalFormatter.parse("37,5", locale: locale)
-        XCTAssertEqual(result, 37.5, accuracy: 0.0001)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result ?? 0, 37.5, accuracy: 0.0001)
     }
 
     func testParseAcceptsPeriodInCommaLocale() {
         let locale = Locale(identifier: "fr_FR")
         let result = LocalizedDecimalFormatter.parse("37.5", locale: locale)
-        XCTAssertEqual(result, 37.5, accuracy: 0.0001)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result ?? 0, 37.5, accuracy: 0.0001)
     }
 
     func testStringUsesLocaleDecimalSeparator() {
