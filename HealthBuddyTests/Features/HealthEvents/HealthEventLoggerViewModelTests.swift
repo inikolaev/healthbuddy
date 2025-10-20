@@ -32,7 +32,7 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
     func testLogEventPersistsToStoreWithTemperature() throws {
         var form = HealthEventForm()
         form.temperature = TemperatureReading(value: 38.1, unit: .celsius)
-        form.symptomLabels = ["Cough"]
+        form.symptomKinds = [.cough]
         form.customSymptoms = ["Body aches"]
         form.notes = "Rest and fluids"
 
@@ -49,8 +49,8 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
             XCTAssertEqual(temperature.value, 38.1, accuracy: 0.001)
         }
         XCTAssertEqual(event.symptoms.count, 2)
-        XCTAssertTrue(event.symptoms.contains(where: { !$0.isCustom && $0.label == "Cough" }))
-        XCTAssertTrue(event.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))
+        XCTAssertTrue(event.symptoms.contains(where: { $0.kind == .cough }))
+        XCTAssertTrue(event.symptoms.contains(where: { $0.isCustom && $0.customLabel == "Body aches" }))
     }
 
     func testLogEventRespectsCustomTimestamp() throws {
@@ -74,7 +74,7 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
             memberId: member.id,
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.0, unit: .celsius),
-            symptoms: [Symptom(label: "Cough", isCustom: false)],
+            symptoms: [Symptom(kind: .cough)],
             notes: nil
         )
         try store.addEvent(original)
@@ -82,7 +82,7 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         let newRecordedAt = calendar.date(byAdding: .minute, value: -90, to: Date()) ?? Date()
 
         var form = HealthEventForm(memberId: member.id, recordedAt: newRecordedAt)
-        form.symptomLabels = ["Fever"]
+        form.symptomKinds = [.fever]
         form.customSymptoms = ["Body aches"]
         form.notes = "Hydrate often"
 
@@ -93,8 +93,8 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
         let updated = try XCTUnwrap(state.events.first)
         XCTAssertEqual(updated.id, original.id)
         XCTAssertNil(updated.temperature)
-        XCTAssertTrue(updated.symptoms.contains(where: { !$0.isCustom && $0.label == "Fever" }))
-        XCTAssertTrue(updated.symptoms.contains(where: { $0.isCustom && $0.label == "Body aches" }))
+        XCTAssertTrue(updated.symptoms.contains(where: { $0.kind == .fever }))
+        XCTAssertTrue(updated.symptoms.contains(where: { $0.isCustom && $0.customLabel == "Body aches" }))
         XCTAssertEqual(updated.notes, "Hydrate often")
 
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: newRecordedAt)
@@ -107,7 +107,7 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
             memberId: member.id,
             recordedAt: Date(),
             temperature: nil,
-            symptoms: [Symptom(label: "Cough", isCustom: false)],
+            symptoms: [Symptom(kind: .cough)],
             notes: nil
         )
         try store.addEvent(original)
@@ -128,19 +128,19 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
 
     func testLogEventAllowsMissingTemperature() throws {
         var form = HealthEventForm()
-        form.symptomLabels = ["Fever"]
+        form.symptomKinds = [.fever]
 
         try sut.logEvent(using: form)
 
         let event = try XCTUnwrap(store.loadState().events.first)
         XCTAssertNil(event.temperature)
-        XCTAssertEqual(event.symptoms.first?.label, "Fever")
+        XCTAssertEqual(event.symptoms.first?.kind, .fever)
     }
 
     func testRequiresTemperatureWhenFeverSelected() {
         XCTAssertTrue(
             HealthEventLoggerViewModel.requiresTemperature(
-                symptomLabels: ["fever"],
+                symptomKinds: [.fever],
                 customSymptoms: []
             )
         )
@@ -149,7 +149,16 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
     func testRequiresTemperatureWhenChillsSelected() {
         XCTAssertTrue(
             HealthEventLoggerViewModel.requiresTemperature(
-                symptomLabels: ["Cough"],
+                symptomKinds: [.chills],
+                customSymptoms: []
+            )
+        )
+    }
+
+    func testRequiresTemperatureWhenChillsCustomLabelProvided() {
+        XCTAssertTrue(
+            HealthEventLoggerViewModel.requiresTemperature(
+                symptomKinds: [],
                 customSymptoms: ["chills"]
             )
         )
@@ -158,8 +167,8 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
     func testRequiresTemperatureIsCaseInsensitiveAndTrimmed() {
         XCTAssertTrue(
             HealthEventLoggerViewModel.requiresTemperature(
-                symptomLabels: ["  Fever "],
-                customSymptoms: []
+                symptomKinds: [],
+                customSymptoms: ["  Fever "]
             )
         )
     }
@@ -167,7 +176,7 @@ final class HealthEventLoggerViewModelTests: XCTestCase {
     func testRequiresTemperatureFalseWhenNoIndicatorsPresent() {
         XCTAssertFalse(
             HealthEventLoggerViewModel.requiresTemperature(
-                symptomLabels: ["cough", "sore throat"],
+                symptomKinds: [],
                 customSymptoms: ["body aches"]
             )
         )

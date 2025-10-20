@@ -26,6 +26,7 @@ struct FamilyProfilesView: View {
                         } label: {
                             Label("Add Member", systemImage: "plus")
                         }
+                        .accessibilityIdentifier("family_addMemberButton")
                     }
                 }
                 .sheet(isPresented: $isPresentingAddMember) {
@@ -77,6 +78,7 @@ struct FamilyProfilesView: View {
                     TextField("Name", text: $newMemberName)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled()
+                        .accessibilityIdentifier("family_addMember_nameField")
                     TextField("Allergies or chronic notes", text: $newMemberNotes, axis: .vertical)
                 }
             }
@@ -92,6 +94,7 @@ struct FamilyProfilesView: View {
                         saveMember()
                     }
                     .disabled(newMemberName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("family_addMember_saveButton")
                 }
             }
         }

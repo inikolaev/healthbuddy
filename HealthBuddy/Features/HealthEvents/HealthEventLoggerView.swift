@@ -29,7 +29,7 @@ struct HealthEventLoggerView: View {
         if let event = editingEvent {
             _form = State(initialValue: HealthEventForm(event: event))
             let showTemperature = HealthEventLoggerViewModel.requiresTemperature(
-                symptomLabels: _form.wrappedValue.symptomLabels,
+                symptomKinds: _form.wrappedValue.symptomKinds,
                 customSymptoms: _form.wrappedValue.customSymptoms
             )
             if showTemperature, let temperature = event.temperature {
@@ -80,6 +80,7 @@ struct HealthEventLoggerView: View {
                         } label: {
                             Text("Delete")
                         }
+                        .accessibilityIdentifier("event_deleteButton")
                     }
                 }
             }
@@ -95,6 +96,7 @@ struct HealthEventLoggerView: View {
                 Button("Delete Event", role: .destructive) {
                     performDelete()
                 }
+                .accessibilityIdentifier("event_confirmDeleteButton")
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Deleting removes this entry from the log and cannot be undone.")
@@ -108,7 +110,7 @@ struct HealthEventLoggerView: View {
                 )
             }
             .onAppear(perform: refreshMembersIfNeeded)
-            .onChange(of: form.symptomLabels) { _, _ in
+            .onChange(of: form.symptomKinds) { _, _ in
                 clearTemperatureIfNeeded()
             }
             .onChange(of: form.customSymptoms) { _, _ in
@@ -126,6 +128,7 @@ struct HealthEventLoggerView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 12)
                     .disabled(!canSave)
+                    .accessibilityIdentifier("event_primaryActionButton")
                     .background(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(.ultraThinMaterial)
@@ -141,16 +144,16 @@ struct HealthEventLoggerView: View {
         }
     }
 
-    private var availableSymptoms: [String] {
-        viewModel.symptomLibrary.filter { symptom in
-            !form.symptomLabels.contains(where: { $0.caseInsensitiveCompare(symptom) == .orderedSame }) &&
-            !form.customSymptoms.contains(where: { $0.caseInsensitiveCompare(symptom) == .orderedSame })
+    private var availableSymptoms: [SymptomKind] {
+        viewModel.symptomLibrary.filter { kind in
+            !form.symptomKinds.contains(kind)
         }
+        .sorted { $0.localizedName.localizedCaseInsensitiveCompare($1.localizedName) == .orderedAscending }
     }
 
     private var isEditing: Bool { editingEvent != nil }
 
-    private var primaryButtonTitle: String { isEditing ? "Update Health Event" : "Save Health Event" }
+    private var primaryButtonTitle: LocalizedStringKey { isEditing ? "Update Health Event" : "Save Health Event" }
 
     private func performDelete() {
         guard let editingEvent else { return }
@@ -216,14 +219,14 @@ struct HealthEventLoggerView: View {
 
     private var symptomsSection: some View {
         Section("Symptoms") {
-            if form.symptomLabels.isEmpty && form.customSymptoms.isEmpty {
+            if form.symptomKinds.isEmpty && form.customSymptoms.isEmpty {
                 Text("No symptoms selected yet.")
                     .foregroundStyle(.secondary)
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], alignment: .leading, spacing: 8) {
-                    ForEach(form.symptomLabels, id: \.self) { symptom in
-                        SymptomChip(label: symptom, removable: true) {
-                            form.symptomLabels.removeAll { $0 == symptom }
+                    ForEach(form.symptomKinds, id: \.self) { kind in
+                        SymptomChip(label: kind.localizedName, removable: true) {
+                            form.symptomKinds.removeAll { $0 == kind }
                         }
                     }
                     ForEach(form.customSymptoms, id: \.self) { symptom in
@@ -241,6 +244,7 @@ struct HealthEventLoggerView: View {
             } label: {
                 Label("Add Symptom", systemImage: "plus.circle")
             }
+            .accessibilityIdentifier("event_addSymptomButton")
         }
     }
 
@@ -271,7 +275,7 @@ struct HealthEventLoggerView: View {
     private var canSave: Bool {
         let hasContext = (form.memberId ?? contextMemberId) != nil
         let hasTemperature = temperatureReading != nil
-        let hasSymptoms = !form.symptomLabels.isEmpty || !form.customSymptoms.isEmpty
+        let hasSymptoms = !form.symptomKinds.isEmpty || !form.customSymptoms.isEmpty
         let hasNotes = !(form.notes?.trimmed.isEmpty ?? true)
         return hasContext && (hasTemperature || hasSymptoms || hasNotes)
     }
@@ -290,11 +294,9 @@ struct HealthEventLoggerView: View {
         form.memberId = viewModel.members.first?.id
     }
 
-    private func addSymptom(_ symptom: String) {
-        let normalized = symptom.trimmed
-        guard !normalized.isEmpty else { return }
-        if !form.symptomLabels.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
-            form.symptomLabels.append(normalized)
+    private func addSymptom(_ symptom: SymptomKind) {
+        if !form.symptomKinds.contains(symptom) {
+            form.symptomKinds.append(symptom)
         }
         isPresentingSymptomPicker = false
     }
@@ -302,8 +304,9 @@ struct HealthEventLoggerView: View {
     private func addCustomSymptom(_ symptom: String) {
         let normalized = symptom.trimmed
         guard !normalized.isEmpty else { return }
-        if !form.customSymptoms.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) &&
-            !form.symptomLabels.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
+        if let matched = SymptomKind.matching(label: normalized) {
+            addSymptom(matched)
+        } else if !form.customSymptoms.contains(where: { $0.caseInsensitiveCompare(normalized) == .orderedSame }) {
             form.customSymptoms.append(normalized)
         }
         customSymptomDraft = ""
@@ -313,6 +316,7 @@ struct HealthEventLoggerView: View {
     private func logEvent() {
         var workingForm = form
         workingForm.memberId = form.memberId ?? contextMemberId
+        workingForm.symptomKinds = form.symptomKinds
         workingForm.temperature = temperatureReading
 
         do {
@@ -330,7 +334,7 @@ struct HealthEventLoggerView: View {
 
     private var shouldShowTemperatureSection: Bool {
         HealthEventLoggerViewModel.requiresTemperature(
-            symptomLabels: form.symptomLabels,
+            symptomKinds: form.symptomKinds,
             customSymptoms: form.customSymptoms
         )
     }
@@ -345,9 +349,9 @@ struct HealthEventLoggerView: View {
 }
 
 private struct SymptomPickerView: View {
-    var availableSymptoms: [String]
+    var availableSymptoms: [SymptomKind]
     @Binding var customDraft: String
-    var onSelect: (String) -> Void
+    var onSelect: (SymptomKind) -> Void
     var onAddCustom: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -358,9 +362,11 @@ private struct SymptomPickerView: View {
                 if !availableSymptoms.isEmpty {
                     Section("Common symptoms") {
                         ForEach(availableSymptoms, id: \.self) { symptom in
-                            Button(symptom) {
+                            Button {
                                 onSelect(symptom)
                                 dismiss()
+                            } label: {
+                                Text(symptom.localizedName)
                             }
                         }
                     }
@@ -368,11 +374,13 @@ private struct SymptomPickerView: View {
 
                 Section("Custom") {
                     TextField("Describe symptom", text: $customDraft)
+                        .accessibilityIdentifier("symptomPicker_customField")
                     Button("Add custom") {
                         onAddCustom(customDraft)
                         dismiss()
                     }
                     .disabled(customDraft.trimmed.isEmpty)
+                    .accessibilityIdentifier("symptomPicker_addCustomButton")
                 }
             }
             .navigationTitle("Add Symptom")
@@ -423,7 +431,7 @@ private struct SymptomChip: View {
         memberId: member.id,
         recordedAt: Date(),
         temperature: TemperatureReading(value: 38.4, unit: .celsius),
-        symptoms: [Symptom(label: "Fever", isCustom: false), Symptom(label: "Body aches", isCustom: true)],
+        symptoms: [Symptom(kind: .fever), Symptom(customLabel: "Body aches")],
         notes: "Encourage rest"
     )
     _ = try? store.addEvent(event)

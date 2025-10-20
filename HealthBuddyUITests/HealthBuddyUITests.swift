@@ -25,34 +25,39 @@ final class HealthBuddyUITests: XCTestCase {
     func testLogAndDeleteHealthEventFlow() throws {
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Family"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["family_addMemberButton"].waitForExistence(timeout: 5))
 
-        app.navigationBars["Family"].buttons["Add Member"].tap()
+        app.buttons["family_addMemberButton"].tap()
 
-        let nameField = app.textFields["Name"]
+        let nameField = app.textFields["family_addMember_nameField"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 2))
         nameField.tap()
         nameField.typeText("Jordan")
 
-        app.navigationBars["New Family Member"].buttons["Save"].tap()
+        app.buttons["family_addMember_saveButton"].tap()
 
         let memberCell = app.cells.containing(.staticText, identifier: "Jordan").firstMatch
         XCTAssertTrue(memberCell.waitForExistence(timeout: 2))
         memberCell.tap()
 
-        let logEventButton = app.buttons["Log Health Event"]
+        let logEventButton = app.buttons["memberDetail_logEventButton"]
         XCTAssertTrue(logEventButton.waitForExistence(timeout: 2))
         logEventButton.tap()
 
-        let addSymptomButton = app.buttons["Add Symptom"]
+        let addSymptomButton = app.buttons["event_addSymptomButton"]
         XCTAssertTrue(addSymptomButton.waitForExistence(timeout: 2))
         addSymptomButton.tap()
 
-        let coughButton = app.buttons["Cough"]
-        XCTAssertTrue(coughButton.waitForExistence(timeout: 2))
-        coughButton.tap()
+        let customSymptomField = app.textFields["symptomPicker_customField"]
+        XCTAssertTrue(customSymptomField.waitForExistence(timeout: 2))
+        customSymptomField.tap()
+        customSymptomField.typeText("Cough")
 
-        let saveButton = app.buttons["Save Health Event"]
+        let addCustomButton = app.buttons["symptomPicker_addCustomButton"]
+        XCTAssertTrue(addCustomButton.waitForExistence(timeout: 2))
+        addCustomButton.tap()
+
+        let saveButton = app.buttons["event_primaryActionButton"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 2))
         saveButton.tap()
 
@@ -60,15 +65,15 @@ final class HealthBuddyUITests: XCTestCase {
         XCTAssertTrue(eventCell.waitForExistence(timeout: 2))
         eventCell.tap()
 
-        let deleteButton = app.navigationBars["Edit Health Event"].buttons["Delete"]
+        let deleteButton = app.buttons["event_deleteButton"]
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 2))
         deleteButton.tap()
 
-        let confirmDeleteButton = app.buttons["Delete Event"]
+        let confirmDeleteButton = app.buttons["event_confirmDeleteButton"]
         XCTAssertTrue(confirmDeleteButton.waitForExistence(timeout: 2))
         confirmDeleteButton.tap()
 
-        let noEventsLabel = app.staticTexts["No health events logged yet."]
+        let noEventsLabel = app.staticTexts["memberDetail_noEventsLabel"]
         XCTAssertTrue(noEventsLabel.waitForExistence(timeout: 2))
         XCTAssertFalse(eventCell.exists)
     }

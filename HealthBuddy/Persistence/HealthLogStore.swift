@@ -96,7 +96,7 @@ final class HealthLogStore: HealthLogStoring {
 
     func replaceState(_ newState: HealthLogState) throws {
         try queue.sync {
-            state = newState
+            state = HealthLogMigrationPipeline.migrate(state: newState)
             try persist()
         }
     }
@@ -104,6 +104,7 @@ final class HealthLogStore: HealthLogStoring {
     private func persist() throws {
         let directory = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+        state.schemaVersion = HealthLogSchemaVersion.current.rawValue
         let data = try encoder.encode(state)
         try data.write(to: fileURL, options: [.atomic])
     }
@@ -113,6 +114,7 @@ final class HealthLogStore: HealthLogStoring {
             return nil
         }
         let data = try Data(contentsOf: url)
-        return try decoder.decode(HealthLogState.self, from: data)
+        let decoded = try decoder.decode(HealthLogState.self, from: data)
+        return HealthLogMigrationPipeline.migrate(state: decoded)
     }
 }

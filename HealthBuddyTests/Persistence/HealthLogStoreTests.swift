@@ -21,6 +21,7 @@ final class HealthLogStoreTests: XCTestCase {
     func testLoadReturnsEmptyStateWhenBackingFileMissing() throws {
         let state = store.loadState()
 
+        XCTAssertEqual(state.schemaVersion, HealthLogSchemaVersion.current.rawValue)
         XCTAssertTrue(state.members.isEmpty)
         XCTAssertTrue(state.events.isEmpty)
     }
@@ -31,6 +32,7 @@ final class HealthLogStoreTests: XCTestCase {
 
         let reloadedStore = HealthLogStore(directory: temporaryDirectory)
         XCTAssertEqual(reloadedStore.loadState().members, [member])
+        XCTAssertEqual(reloadedStore.loadState().schemaVersion, HealthLogSchemaVersion.current.rawValue)
     }
 
     func testAddEventRequiresExistingMember() {
@@ -39,7 +41,7 @@ final class HealthLogStoreTests: XCTestCase {
             memberId: UUID(),
             recordedAt: Date(),
             temperature: TemperatureReading(value: 37.1, unit: .celsius),
-            symptoms: [Symptom(label: "Cough", isCustom: false)],
+            symptoms: [Symptom(kind: .cough)],
             notes: "Rested"
         )
 
@@ -49,6 +51,7 @@ final class HealthLogStoreTests: XCTestCase {
             }
             XCTAssertEqual(storeError, .missingMember(event.memberId))
         }
+        XCTAssertEqual(store.loadState().schemaVersion, HealthLogSchemaVersion.current.rawValue)
     }
 
     func testRemovingMemberAlsoRemovesEvents() throws {
@@ -60,15 +63,17 @@ final class HealthLogStoreTests: XCTestCase {
             memberId: member.id,
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.3, unit: .celsius),
-            symptoms: [Symptom(label: "Headache", isCustom: false)],
+            symptoms: [Symptom(kind: .headache)],
             notes: "Slept early"
         )
         try store.addEvent(event)
 
         try store.removeMember(id: member.id)
 
-        XCTAssertTrue(store.loadState().members.isEmpty)
-        XCTAssertTrue(store.loadState().events.isEmpty)
+        let state = store.loadState()
+        XCTAssertEqual(state.schemaVersion, HealthLogSchemaVersion.current.rawValue)
+        XCTAssertTrue(state.members.isEmpty)
+        XCTAssertTrue(state.events.isEmpty)
     }
 
     func testAddEventAllowsMissingTemperature() throws {
@@ -86,7 +91,9 @@ final class HealthLogStoreTests: XCTestCase {
 
         try store.addEvent(event)
 
-        XCTAssertNil(store.loadState().events.first?.temperature)
+        let state = store.loadState()
+        XCTAssertEqual(state.schemaVersion, HealthLogSchemaVersion.current.rawValue)
+        XCTAssertNil(state.events.first?.temperature)
     }
 
     func testRemoveEventDeletesEvent() throws {
@@ -105,6 +112,8 @@ final class HealthLogStoreTests: XCTestCase {
 
         try store.removeEvent(id: event.id)
 
-        XCTAssertTrue(store.loadState().events.isEmpty)
+        let state = store.loadState()
+        XCTAssertEqual(state.schemaVersion, HealthLogSchemaVersion.current.rawValue)
+        XCTAssertTrue(state.events.isEmpty)
     }
 }

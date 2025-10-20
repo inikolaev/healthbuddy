@@ -35,7 +35,7 @@ final class FamilyMemberDetailViewModel: ObservableObject {
         if let existing = store.loadState().members.first(where: { $0.id == memberId }) {
             self.member = existing
         } else {
-            self.member = FamilyMember(id: memberId, name: "Unknown")
+            self.member = FamilyMember(id: memberId, name: NSLocalizedString("Unknown", comment: "Placeholder name for missing family member"))
         }
 
         refresh()

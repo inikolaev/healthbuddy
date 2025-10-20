@@ -30,14 +30,14 @@ final class EventHistoryViewModelTests: XCTestCase {
             memberId: jordan.id,
             recordedAt: Date().addingTimeInterval(-3600),
             temperature: TemperatureReading(value: 37.2, unit: .celsius),
-            symptoms: [Symptom(label: "Headache", isCustom: false)],
+            symptoms: [Symptom(kind: .headache)],
             notes: nil
         )
         let newer = HealthEvent(
             memberId: jordan.id,
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.6, unit: .celsius),
-            symptoms: [Symptom(label: "Fever", isCustom: false)],
+            symptoms: [Symptom(kind: .fever)],
             notes: nil
         )
         let lenaEvent = HealthEvent(
@@ -69,9 +69,9 @@ final class EventHistoryViewModelTests: XCTestCase {
             recordedAt: Date(),
             temperature: TemperatureReading(value: 39.7, unit: .celsius),
             symptoms: [
-                Symptom(label: "Fever", isCustom: false),
-                Symptom(label: "Cough", isCustom: false),
-                Symptom(label: "Sore throat", isCustom: false)
+                Symptom(kind: .fever),
+                Symptom(kind: .cough),
+                Symptom(kind: .soreThroat)
             ],
             notes: "Encourage fluids"
         )
@@ -94,8 +94,8 @@ final class EventHistoryViewModelTests: XCTestCase {
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.4, unit: .celsius),
             symptoms: [
-                Symptom(label: "Cough", isCustom: false),
-                Symptom(label: "Sore throat", isCustom: false)
+                Symptom(kind: .cough),
+                Symptom(kind: .soreThroat)
             ],
             notes: nil
         )
@@ -113,7 +113,7 @@ final class EventHistoryViewModelTests: XCTestCase {
             memberId: jordan.id,
             recordedAt: Date(),
             temperature: nil,
-            symptoms: [Symptom(label: "Fatigue", isCustom: false)],
+            symptoms: [Symptom(kind: .fatigue)],
             notes: nil
         )
         try store.addEvent(event)

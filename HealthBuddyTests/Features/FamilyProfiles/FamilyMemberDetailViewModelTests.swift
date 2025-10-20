@@ -36,14 +36,14 @@ final class FamilyMemberDetailViewModelTests: XCTestCase {
             memberId: member.id,
             recordedAt: now,
             temperature: TemperatureReading(value: 38.2, unit: .celsius),
-            symptoms: [Symptom(label: "Fever", isCustom: false)],
+            symptoms: [Symptom(kind: .fever)],
             notes: nil
         )
         let olderMemberEvent = HealthEvent(
             memberId: member.id,
             recordedAt: earlier,
             temperature: nil,
-            symptoms: [Symptom(label: "Fatigue", isCustom: false)],
+            symptoms: [Symptom(kind: .fatigue)],
             notes: nil
         )
         let otherEvent = HealthEvent(
@@ -82,7 +82,7 @@ final class FamilyMemberDetailViewModelTests: XCTestCase {
                 memberId: member.id,
                 recordedAt: now.addingTimeInterval(TimeInterval(-index * 60)),
                 temperature: nil,
-                symptoms: [Symptom(label: "Symptom \(index)", isCustom: false)],
+                symptoms: [Symptom(customLabel: "Symptom \(index)")],
                 notes: nil
             )
             try store.addEvent(event)

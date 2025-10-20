@@ -1,9 +1,6 @@
 import Foundation
 
-private let defaultSymptomLibrary: [String] = [
-    "Fever", "Headache", "Sore throat", "Cough", "Congestion",
-    "Runny nose", "Chills", "Fatigue", "Muscle aches", "Nausea"
-]
+private let defaultSymptomLibrary: [SymptomKind] = SymptomKind.allCases
 
 enum HealthEventLoggerError: Error, Equatable {
     case missingMemberSelection
@@ -15,7 +12,7 @@ enum HealthEventLoggerError: Error, Equatable {
 @MainActor
 final class HealthEventLoggerViewModel: ObservableObject {
     @Published private(set) var members: [FamilyMember] = []
-    let symptomLibrary: [String]
+    let symptomLibrary: [SymptomKind]
 
     private let store: any HealthLogStoring
     private let calendar: Calendar
@@ -26,7 +23,7 @@ final class HealthEventLoggerViewModel: ObservableObject {
     init(
         store: any HealthLogStoring,
         memberId: UUID? = nil,
-        symptomLibrary: [String] = defaultSymptomLibrary,
+        symptomLibrary: [SymptomKind] = defaultSymptomLibrary,
         calendar: Calendar = .current
     ) {
         self.store = store
@@ -60,7 +57,7 @@ final class HealthEventLoggerViewModel: ObservableObject {
             }
         }
 
-        let symptoms = normalizeSymptoms(predefined: form.symptomLabels, custom: form.customSymptoms)
+        let symptoms = normalizeSymptoms(predefined: form.symptomKinds, custom: form.customSymptoms)
 
         let event = HealthEvent(
             memberId: memberId,
@@ -90,7 +87,7 @@ final class HealthEventLoggerViewModel: ObservableObject {
             }
         }
 
-        let symptoms = normalizeSymptoms(predefined: form.symptomLabels, custom: form.customSymptoms)
+        let symptoms = normalizeSymptoms(predefined: form.symptomKinds, custom: form.customSymptoms)
 
         let updatedEvent = HealthEvent(
             id: id,
@@ -120,31 +117,43 @@ final class HealthEventLoggerViewModel: ObservableObject {
         }
     }
 
-    static func requiresTemperature(symptomLabels: [String], customSymptoms: [String]) -> Bool {
+    static func requiresTemperature(symptomKinds: [SymptomKind], customSymptoms: [String]) -> Bool {
+        if symptomKinds.contains(where: { $0 == .fever || $0 == .chills }) {
+            return true
+        }
+
         let indicators = ["fever", "temperature", "pyrexia", "chills", "febrile"]
-        let normalized = symptomLabels + customSymptoms
-        return normalized.contains { label in
+        return customSymptoms.contains { label in
             let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             return indicators.contains(where: { trimmed.contains($0) })
         }
     }
 
-    private func normalizeSymptoms(predefined: [String], custom: [String]) -> [Symptom] {
-        var seen = Set<String>()
+    private func normalizeSymptoms(predefined kinds: [SymptomKind], custom: [String]) -> [Symptom] {
+        var seenKinds = Set<SymptomKind>()
+        var symptoms: [Symptom] = []
 
-        func makeSymptoms(from labels: [String], isCustom: Bool) -> [Symptom] {
-            labels.compactMap { label in
-                let normalized = label.trimmed
-                guard !normalized.isEmpty else { return nil }
-                let key = normalized.lowercased()
-                guard seen.insert(key).inserted else { return nil }
-                return Symptom(label: normalized, isCustom: isCustom)
-            }
+        for kind in kinds {
+            guard seenKinds.insert(kind).inserted else { continue }
+            symptoms.append(Symptom(kind: kind))
         }
 
-        let standard = makeSymptoms(from: predefined, isCustom: false)
-        let customSymptoms = makeSymptoms(from: custom, isCustom: true)
-        return standard + customSymptoms
+        var seenCustom = Set<String>()
+        for label in custom {
+            let normalized = label.trimmed
+            guard !normalized.isEmpty else { continue }
+            if let match = SymptomKind.matching(label: normalized) {
+                if seenKinds.insert(match).inserted {
+                    symptoms.append(Symptom(kind: match))
+                }
+                continue
+            }
+            let key = normalized.lowercased()
+            guard seenCustom.insert(key).inserted else { continue }
+            symptoms.append(Symptom(customLabel: normalized))
+        }
+
+        return symptoms
     }
 
     private func trimmedToMinute(_ date: Date) -> Date {

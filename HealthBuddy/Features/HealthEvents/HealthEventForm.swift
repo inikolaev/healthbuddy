@@ -4,7 +4,7 @@ struct HealthEventForm {
     var memberId: UUID?
     var recordedAt: Date
     var temperature: TemperatureReading?
-    var symptomLabels: [String]
+    var symptomKinds: [SymptomKind]
     var customSymptoms: [String]
     var notes: String?
 
@@ -12,14 +12,14 @@ struct HealthEventForm {
         memberId: UUID? = nil,
         recordedAt: Date = Date(),
         temperature: TemperatureReading? = nil,
-        symptomLabels: [String] = [],
+        symptomKinds: [SymptomKind] = [],
         customSymptoms: [String] = [],
         notes: String? = nil
     ) {
         self.memberId = memberId
         self.recordedAt = recordedAt
         self.temperature = temperature
-        self.symptomLabels = symptomLabels
+        self.symptomKinds = symptomKinds
         self.customSymptoms = customSymptoms
         self.notes = notes
     }
@@ -28,8 +28,10 @@ struct HealthEventForm {
         self.memberId = event.memberId
         self.recordedAt = event.recordedAt
         self.temperature = event.temperature
-        self.symptomLabels = event.symptoms.filter { !$0.isCustom }.map { $0.label }
-        self.customSymptoms = event.symptoms.filter { $0.isCustom }.map { $0.label }
+        self.symptomKinds = event.symptoms.compactMap { $0.kind }
+        self.customSymptoms = event.symptoms
+            .filter { $0.isCustom }
+            .compactMap { $0.customLabel }
         self.notes = event.notes
     }
 }

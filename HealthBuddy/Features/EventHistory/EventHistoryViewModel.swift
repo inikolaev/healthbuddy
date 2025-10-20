@@ -95,9 +95,16 @@ enum EventHistoryEntryFactory {
 
     private static func shouldIncludeTemperature(for event: HealthEvent) -> Bool {
         guard event.temperature != nil else { return false }
+
+        if event.symptoms.contains(where: { $0.kind == .fever || $0.kind == .chills }) {
+            return true
+        }
+
         let keywords = ["fever", "temperature", "pyrexia", "febrile"]
         return event.symptoms.contains { symptom in
-            let label = symptom.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard let label = symptom.customLabel?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), !label.isEmpty else {
+                return false
+            }
             return keywords.contains { keyword in label.contains(keyword) }
         }
     }

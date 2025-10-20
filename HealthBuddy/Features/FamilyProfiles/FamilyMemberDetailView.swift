@@ -26,6 +26,7 @@ struct FamilyMemberDetailView: View {
                 Section("Recent Events") {
                     Text("No health events logged yet.")
                         .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("memberDetail_noEventsLabel")
                 }
             } else {
                 Section("Recent Events") {
@@ -94,6 +95,7 @@ struct FamilyMemberDetailView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
+            .accessibilityIdentifier("memberDetail_logEventButton")
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .padding(.horizontal)
@@ -209,7 +211,7 @@ private struct MemberEventRow: View {
             memberId: member.id,
             recordedAt: Date(),
             temperature: TemperatureReading(value: 38.6, unit: .celsius),
-            symptoms: [Symptom(label: "Fever", isCustom: false)],
+            symptoms: [Symptom(kind: .fever)],
             notes: "Improved after rest"
         )
     )
